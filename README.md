@@ -1,4 +1,4 @@
-<h1 align = "center">Venice is drawning</h1>
+<h1 align = "center">Venice is drowning</h1>
 <h6 align = "center">a Streaming Data Management and Time Series Analysis project</h6>
 
 <h4>Fonti dati</h4>
