@@ -27,16 +27,21 @@ opts_knit$set(width=75)
 ```{r packages, echo=FALSE}
 library(readr)
 library(lubridate)
+library(dplyr)
 library(xts)
 ```
 
-# Premesse
+# Overview
 
 Una volta acquisiti i dati dal sito del [comune di Venezia](http://www.comune.venezia.it/archivio/25419) in formato CSV, un file per ogni anno a partire dal 1983 fino al 2016, è necessario pre-processare questi dati per creare il dataset su cui lavoreremo.
 
-# Dati
+# Dati maree
+
+## Premessa
 
 Sfortunatamente, i dati così come sono forniti dal comune non sono molto omogenei nel loro formato, è perciò necessario distinguere per ogni file, o quasi, una procedura personalizzata di import.
+
+## Processing
 
 Per i dati riguardanti il 1983:
 
@@ -398,7 +403,7 @@ data_2018 <- read_delim("../data/tides/Punta_Salute_2018.csv", delim=";",
 data_2018$level <- data_2018$level*100
 ```
 
-# Verifica dei dati
+## Verifica dei dati
 
 ```{r preparazione dati, echo=T}
 data_years <- 1983:2018
@@ -434,3 +439,202 @@ sapply(tt, anyNA)
 ```
 
 Tutti gli anni sembrerebbero completi, non sono presenti NA values.
+
+## Combinazione
+
+A questo punto procediamo a combinare i nostri dati relativi alle maree:
+
+```{r combinazione, echo=T}
+result_tmp <- do.call(rbind, tt)
+
+result <- data.frame(datetime= (result_tmp$date + seconds(result_tmp$time)),
+                     level=result_tmp$level)
+```
+
+Una volta combinati procediamo alla conversione in *Time series*:
+
+```{r conversione xts, echo=T}
+result_xts <- xts(order.by=(result_tmp$date + seconds(result_tmp$time)),
+                      x=result_tmp$level)
+attr(result_xts, 'frequency') <- 24
+```
+
+
+```{r data creation, echo=T}
+write.zoo(result_xts, file="../data/output/venezia_xts.csv", col.names=c("datetime", "level"))
+
+write.csv(result, file="../data/output/venezia.csv", row.names = FALSE)
+```
+
+
+########### Da qui è da sistemare
+
+
+# Dati meteorologici
+
+## Premessa
+
+Purtroppo i dati meteorologici risultano particolarmente frammentati: mentre infatti l'osservatorio storico ha provveduto a rilevarli in blocco fino al 2002 a partire dal 2003 sono state installate una serie di centraline automatiche nella laguna di Venezia. Queste centraline dispongono solo di alcuni tipi di dato, alcune dispongono dei dati riguardo le precipitazioni, altre di quelli relativi direzione e velocità del vento. E' perciò necessario reperire i dati dalle diverse fonti e portarli ad un formato comune così da creare un unico blocco.
+
+Elemento più significativo riguardo questo aspetto è che i dati reperibili dalle centraline sono molto frammentati, discontinui e spesso incoerenti poichè non sottoposti a validazione. Per ora quindi si provvederà ad utilizzare soltanto i dati dell'osservatorio storico.
+
+## Processing
+
+Innanzitutto importiamo i dati meteorologici dell'osservatorio storico, disponibili dal 1983 al 2002:
+
+```{r}
+data_rain_1983_1984 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1980_1984.csv", delim=";", 
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=26306)
+
+data_rain_1983_1984[is.na(data_rain_1983_1984)] <- 0.0
+
+data_rain_1985_1989 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1985_1989.csv", delim=";", 
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=2)
+
+data_rain_1985_1989[is.na(data_rain_1985_1989)] <- 0.0
+
+data_rain_1990_1994 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1990_1994.csv", delim=";", 
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=2)
+
+data_rain_1990_1994[is.na(data_rain_1990_1994)] <- 0.0
+
+data_rain_1995_1999 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1995_1999.csv", delim=";", 
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=2)
+
+data_rain_1995_1999[is.na(data_rain_1995_1999)] <- 0.0
+
+data_rain_2000_2002 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_2000_2002.csv", delim=";", 
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=2)
+
+data_rain_2000_2002[is.na(data_rain_2000_2002)] <- 0.0
+```
+
+
+```{r}
+tt <- list(data_rain_1983_1984, data_rain_1985_1989, data_rain_1990_1994,
+           data_rain_1995_1999, data_rain_2000_2002)
+```
+
+```{r}
+sapply(tt, anyNA)
+
+```
+
+```{r}
+result_tmp <- do.call(rbind, tt)
+
+result <- data.frame(datetime= (result_tmp$date + seconds(result_tmp$time)),
+                     dir_wind=result_tmp$dir_wind,
+                     vel_wind = result_tmp$vel_wind,
+                     rain = result_tmp$rain)
+```
+
+```{r}
+result %>% filter(datetime > "1984-12-31 23:00:00")
+```
+
+
+```{r}
+head(result)
+tail(result)
+```
+
+```{r}
+tides <- read.csv("../data/output/venezia.csv")
+head(tides)
+```
+
+```{r}
+tides$datetime <- as.POSIXct(tides$datetime, format = "%Y-%m-%d %H:%M:%OS")
+```
+
+```{r}
+tides %>% filter(datetime <= "2002-12-31 23:00:00") -> tides_filtered
+```
+
+```{r}
+head(tides_filtered)
+tail(tides_filtered)
+```
+
+
+```{r}
+head(result_tmp)
+tail(result_tmp)
+```
+
+
+```{r}
+tides %>% filter()
+```
+
+
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+library(dplyr)
+dplr <- left_join(result, tides_filtered, by=c("datetime","datetime"))
+```
+
+```{r}
+anyNA(dplr)
+```
+

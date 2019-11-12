@@ -7,3 +7,4 @@ readr
 lubridate
 zoo
 xts
+dplyr
