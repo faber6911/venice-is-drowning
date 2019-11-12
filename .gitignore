@@ -8,4 +8,9 @@ parsing_data_files_cache
 *.out
 *.toc
 *.tex
+.DS_Store
+.Rproj.user
 .Rhistory
+.Rapp.history
+.RData
+.Rprofile
