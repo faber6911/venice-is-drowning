@@ -428,8 +428,8 @@ sapply(names(tt), function(d) tail(tt[[d]]["time"],1)==0 && tail(tt[[d]]["date"]
 Ora controlliamo numero di istanze per ogni anno facendo attenzione agli anni bisestili:
 
 ```{r verifica anni bisestili, echo=T}
-sapply(names(tt), function(d) nrow(tt[[d]])==ifelse(leap_year(as.integer(d)), 24*366, 24*365)) 
-sapply(names(tt), function(d) nrow(tt[[d]])==ifelse(leap_year(as.integer(d)), 24*366, 24*365)) 
+sapply(names(tt), function(d) nrow(tt[[d]])==ifelse(leap_year(as.integer(d)), 24*366, 24*365))
+sapply(names(tt), function(d) nrow(tt[[d]])==ifelse(leap_year(as.integer(d)), 24*366, 24*365))
 ```
 
 Infine verifichiamo se sono presenti dei *missing values*
@@ -447,8 +447,8 @@ A questo punto procediamo a combinare i nostri dati relativi alle maree:
 ```{r combinazione, echo=T}
 result_tmp <- do.call(rbind, tt)
 
-result <- data.frame(datetime= (result_tmp$date + seconds(result_tmp$time)),
-                     level=result_tmp$level)
+result <- data.frame(datetime = as.POSIXct(paste(result_tmp$date, result_tmp$time), format="%Y-%m-%d %H:%M:%S"),
+                     level = result_tmp$level)
 ```
 
 Una volta combinati procediamo alla conversione in *Time series*:
@@ -464,11 +464,9 @@ attr(result_xts, 'frequency') <- 24
 write.zoo(result_xts, file="../data/output/venezia_xts.csv", col.names=c("datetime", "level"))
 
 write.csv(result, file="../data/output/venezia.csv", row.names = FALSE)
+
+rm(list = ls())
 ```
-
-
-########### Da qui è da sistemare
-
 
 # Dati meteorologici
 
@@ -483,7 +481,8 @@ Elemento più significativo riguardo questo aspetto è che i dati reperibili dal
 Innanzitutto importiamo i dati meteorologici dell'osservatorio storico, disponibili dal 1983 al 2002:
 
 ```{r}
-data_rain_1983_1984 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1980_1984.csv", delim=";", 
+data_rain_1983_1984 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1980_1984.csv", delim=";",
+                                  locale = locale("it"),
                         col_types = cols_only(
                           col_date("%d/%m/%Y"),
                           col_time("%H.%M"),
@@ -499,7 +498,8 @@ data_rain_1983_1984 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1980_1
 
 data_rain_1983_1984[is.na(data_rain_1983_1984)] <- 0.0
 
-data_rain_1985_1989 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1985_1989.csv", delim=";", 
+data_rain_1985_1989 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1985_1989.csv", delim=";",
+                                  locale = locale("it"),
                         col_types = cols_only(
                           col_date("%d/%m/%Y"),
                           col_time("%H.%M"),
@@ -511,11 +511,12 @@ data_rain_1985_1989 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1985_1
                           col_number(),
                           col_skip()),
                         col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
-                        skip=2)
+                        skip=1)
 
 data_rain_1985_1989[is.na(data_rain_1985_1989)] <- 0.0
 
-data_rain_1990_1994 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1990_1994.csv", delim=";", 
+data_rain_1990_1994 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1990_1994.csv", delim=";",
+                                  locale = locale("it"),
                         col_types = cols_only(
                           col_date("%d/%m/%Y"),
                           col_time("%H.%M"),
@@ -527,11 +528,12 @@ data_rain_1990_1994 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1990_1
                           col_number(),
                           col_skip()),
                         col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
-                        skip=2)
+                        skip=1)
 
 data_rain_1990_1994[is.na(data_rain_1990_1994)] <- 0.0
 
-data_rain_1995_1999 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1995_1999.csv", delim=";", 
+data_rain_1995_1999 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1995_1999.csv", delim=";",
+                                  locale = locale("it"),
                         col_types = cols_only(
                           col_date("%d/%m/%Y"),
                           col_time("%H.%M"),
@@ -543,11 +545,12 @@ data_rain_1995_1999 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1995_1
                           col_number(),
                           col_skip()),
                         col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
-                        skip=2)
+                        skip=1)
 
 data_rain_1995_1999[is.na(data_rain_1995_1999)] <- 0.0
 
-data_rain_2000_2002 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_2000_2002.csv", delim=";", 
+data_rain_2000_2002 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_2000_2002.csv", delim=";",
+                                  locale = locale("it"),
                         col_types = cols_only(
                           col_date("%d/%m/%Y"),
                           col_time("%H.%M"),
@@ -559,82 +562,93 @@ data_rain_2000_2002 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_2000_2
                           col_number(),
                           col_skip()),
                         col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
-                        skip=2)
+                        skip=1)
 
 data_rain_2000_2002[is.na(data_rain_2000_2002)] <- 0.0
 ```
 
+Poichè quando in assenza di pioggia la cella è rimasta senza imputazione forziamo la compilazione con il valore 0.
 
-```{r}
+A questo punto non ci resta altro che combinare i nostri files in un file unico:
+
+```{r weather data concat, echo=T}
 tt <- list(data_rain_1983_1984, data_rain_1985_1989, data_rain_1990_1994,
            data_rain_1995_1999, data_rain_2000_2002)
 ```
 
-```{r}
-sapply(tt, anyNA)
+Controlliamo se sono presenti NA values:
 
+```{r weather na check, echo=T}
+sapply(tt, anyNA)
 ```
 
-```{r}
+Concateniamo
+
+```{r weather combination, echo=T}
 result_tmp <- do.call(rbind, tt)
 
-result <- data.frame(datetime= (result_tmp$date + seconds(result_tmp$time)),
-                     dir_wind=result_tmp$dir_wind,
+result <- data.frame(datetime = as.POSIXct(paste(result_tmp$date, result_tmp$time), format="%Y-%m-%d %H:%M:%S"),
+                     dir_wind =result_tmp$dir_wind,
                      vel_wind = result_tmp$vel_wind,
                      rain = result_tmp$rain)
 ```
 
-```{r}
-result %>% filter(datetime > "1984-12-31 23:00:00")
+```{r convert to char, echo=T}
+result$datetime <- as.character(result$datetime)
 ```
 
+## Combinazione dati maree e dati meteorologici
 
-```{r}
-head(result)
-tail(result)
-```
+Ora che abbiamo realizzato il nostro dataset riguardo il meteo importiamo il file realizzato in precedenza riguardante le maree:
 
-```{r}
+```{r tides import, echo = T}
 tides <- read.csv("../data/output/venezia.csv")
 head(tides)
 ```
 
-```{r}
+Effettuiamo il parsing della data in formato datetime e filtriamo tutti le date successive al 31-12-2002 poichè non disponiamo di dati meteo successivi a questa data
+
+```{r date parsing and filtering, echo=T}
 tides$datetime <- as.POSIXct(tides$datetime, format = "%Y-%m-%d %H:%M:%OS")
-```
 
-```{r}
 tides %>% filter(datetime <= "2002-12-31 23:00:00") -> tides_filtered
+
+str(tides_filtered)
+str(result)
 ```
 
-```{r}
-head(tides_filtered)
-tail(tides_filtered)
-```
+```{r structures, echo=T}
+tides_filtered$datetime <- as.character(tides_filtered$datetime)
 
-
-```{r}
-head(result_tmp)
-tail(result_tmp)
-```
-
-
-```{r}
-tides %>% filter()
+str(result)
+str(tides_filtered)
 ```
 
 
+Occorrerebbe indagare meglio sul perchè ci sia questa differenza di 21 istanze tra i due dataset, probabilmente nei dataset delle maree alcune ore sono assenti
 
-```{r}
-library(dplyr)
+```{r nrows, echo=T}
+nrow(tides_filtered)
+nrow(result)
 ```
 
-```{r}
-library(dplyr)
-dplr <- left_join(result, tides_filtered, by=c("datetime","datetime"))
+A questo punto si procede con un right_join
+
+```{r right join, echo=T}
+merged <- right_join(result, tides_filtered)
+head(merged)
 ```
 
-```{r}
-anyNA(dplr)
+E verifichiamo se nel nuovo dataset sono presenti valori mancanti:
+
+```{r check na values for tides and weather, echo=T}
+sapply(merged, anyNA)
 ```
+
+Avendo effettuato il right join sembrerebbero non presentarsi missing values. Procediamo quindi a salvare il nostro dataset:
+
+```{r save dataset, echo=T}
+write.csv(merged, file="../data/output/venezia_tides_weather.csv", row.names = FALSE)
+```
+
 

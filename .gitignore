@@ -1,0 +1,11 @@
+.ipynb_checkpoints
+nohup.out
+parsing_data_files_cache
+*.aux
+*.gz
+*.idx
+*.log
+*.out
+*.toc
+*.tex
+.Rhistory

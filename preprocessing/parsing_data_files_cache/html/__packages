@@ -5,6 +5,7 @@ knitr
 rmdformats
 readr
 lubridate
+dplyr
 zoo
 xts
-dplyr
+pander
