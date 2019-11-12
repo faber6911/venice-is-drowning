@@ -14,3 +14,5 @@ parsing_data_files_cache
 .Rapp.history
 .RData
 .Rprofile
+inspection_cache
+inspection_files

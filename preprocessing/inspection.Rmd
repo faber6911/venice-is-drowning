@@ -1,0 +1,201 @@
+---
+title: "Inspections on tides data"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+   # code_folding: hide
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r packages, echo=FALSE}
+library(TSA)
+library(xts)
+library(lubridate)
+library(ggplot2)
+library(forecast)
+library(readr)
+library(dplyr)
+library(tidyr)
+```
+
+# Controllo dei dati
+
+Cominciamo ad importare i nostri dati e a convertirli in formato time series utilizzando il pacchetto **xts**
+
+```{r import data, echo=T}
+data <- read_csv(file = "../data/output/venezia.csv",
+                 col_types = cols_only(col_datetime(), col_number()))
+
+data_xts <- xts(order.by = data$datetime,
+                      x = data$level)
+
+attr(data_xts, 'frequency') <- 24
+```
+
+Sappiamo già che la nostra serie non presenta *missing values*, controlliamo se sono presenti duplicati nelle nostre istanze
+
+```{r check duplicated, echo=T}
+dup <- duplicated(index(data_xts), fromLast=TRUE)
+sum(dup)
+```
+
+Ne sono stati rilevati alcuni, controlliamo di quali si tratta
+
+```{r find duplicates, echo = T}
+data_xts[index(data_xts[dup,])]
+```
+
+Decidiamo di tenere solo i primi valori, probabilmente si tratta di rilevazioni ripetute
+
+```{r delete duplicates, echo=T}
+data_xts <- data_xts[!dup]
+```
+
+Adesso controlliamo se sono presenti buchi temporali nella nostra serie dovuti magari a mancanze nelle rilevazioni
+
+```{r missing dates, echo=T}
+data_xts_index <- index(data_xts)
+all_points <- seq(first(data_xts_index), last(data_xts_index), by="hour")
+length(all_points) == length(index(data_xts))
+```
+
+Sembrerebbe che effettivamente ci siano  dei buchi temporali, procediamo quindi a riempirli utilizzando i valori precedenti
+
+```{r fill missing dates, echo=T}
+venezia_xts <- xts(order.by=all_points)
+venezia_xts <- merge(data_xts, venezia_xts, join = "right")
+venezia_xts <- na.locf(venezia_xts)
+length(all_points) == length(index(venezia_xts))
+```
+
+# Analisi esplorativa
+
+Procediamo ad esplorare a questo punto la nostra serie storica
+
+Di seguito rappresentiamo la serie storica nella sua interezza e, successivamente, un piccolo estratto:
+
+```{r plot ts, echo=T}
+plot(venezia_xts)
+```
+
+```{r plot ts january 2018, echo=T}
+plot(venezia_xts["2018-01"])
+```
+
+```{r}
+# p <- periodogram(venezia_xts)
+# dd <- data.frame(freq=p$freq, spec=p$spec, time=1/p$freq)
+# order <- dd[order(-dd$spec),]
+# top10 <- head(order, 10)
+# top10
+```
+
+Effettuiamo un po di manipolazione sulla nostra time series in modo da poter estrapolare alcune visualizzazioni utili alla comprensione del fenomeno
+
+```{r data manipulation, echo=T}
+data2 <- as.data.frame(venezia_xts)
+data2$datetime <- rownames(data2)
+rownames(data2) <- NULL
+names(data2) <- c("level", "datetime")
+data2$year <- year(data2$datetime)
+data2$month <- month(data2$datetime)
+data2$day <- day(data2$datetime)
+data2$weekday <- factor(wday(data2$datetime), levels=1:7, labels=c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday" , "Saturday", "Sunday"))
+data2$hour <- hour(data2$datetime)
+data2 <- data2[c("datetime", "year", "month", "day", "weekday", "level")]
+```
+
+Eliminiamo l'anno 2019 di cui è disponibile solo la prima osservazione del primo mese
+
+```{r filter 2019, echo=T}
+data2 <- data2 %>% filter(year<2019)
+```
+
+Ora siamo pronti per visualizzare alcune misure di sintesi
+
+Prima fra tutte visualizziamo la distribuzione del livello delle maree per anno, dal 1983 al 2018
+
+```{r distro level per year, echo=T}
+ggplot(data2,
+       aes(x = year,
+                  y = level,
+                  group = year,
+                  col = factor(year))) + 
+  geom_boxplot() 
+```
+
+In seguito restringiamo il focus per mese
+
+```{r distro level per month, echo=T}
+ggplot(data2,
+       aes(x = as.factor(month),
+           y = level,
+           group = month,
+           col = as.factor(month))) + 
+  geom_boxplot() + 
+  scale_color_discrete("month",
+                       labels = month.abb) +
+  scale_x_discrete("month",
+                   labels = month.abb)
+```
+
+Per ultimo visualizziamo la distribuzione per giorno della settimana
+
+```{r distro level per day, echo=T}
+ggplot(data2, aes(x=weekday, y=level, group=weekday, col=weekday)) + geom_boxplot()
+```
+
+Per realizzare ulteriori visualizzazioni effettuiamo ancora una serie di manipolazioni per estrarre per ogni anno i valori massimo, minimo e medio del livello delle maree
+
+```{r data manipulation 2, echo=T}
+data_yearly <- data2 %>% 
+  group_by(year) %>% 
+  summarise(max = max(level),
+            min = min(level),
+            mean = mean(level)) %>% 
+  gather(key, value, -year)
+```
+
+Una volta realizzata questa manipolazione possiamo sintetizzarla con una visualizzazione più immediata
+
+```{r max min mean level per year, echo=T}
+data_yearly %>% 
+  ggplot(aes(x = year,
+             y = value,
+             fill = as.factor(key))) + 
+  geom_bar(stat = "identity") +
+  scale_fill_discrete("Water level") + 
+  scale_y_continuous("level")
+```
+
+Per ultima realizziamo una regressione sui nostri punti di massimo, minimo e media distinti per anno. Come è possibile osservare sembrerebbe essere presente una generale tendenza alla crescita per tutti e tre i valori.
+
+```{r linear regression, echo=T}
+data_yearly %>% 
+  ggplot(aes(x = year,
+             y = value,
+             col = as.factor(key))) + 
+  geom_point() + 
+  geom_smooth(method = "lm") + 
+  scale_color_discrete("Water level") + 
+  scale_y_continuous("level")
+```
+

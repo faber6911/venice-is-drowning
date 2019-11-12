@@ -447,7 +447,7 @@ A questo punto procediamo a combinare i nostri dati relativi alle maree:
 ```{r combinazione, echo=T}
 result_tmp <- do.call(rbind, tt)
 
-result <- data.frame(datetime = as.POSIXct(paste(result_tmp$date, result_tmp$time), format="%Y-%m-%d %H:%M:%S"),
+result <- data.frame(datetime = (result_tmp$date + seconds(result_tmp$time)),
                      level = result_tmp$level)
 ```
 
@@ -587,7 +587,7 @@ Concateniamo
 ```{r weather combination, echo=T}
 result_tmp <- do.call(rbind, tt)
 
-result <- data.frame(datetime = as.POSIXct(paste(result_tmp$date, result_tmp$time), format="%Y-%m-%d %H:%M:%S"),
+result <- data.frame(datetime = (result_tmp$date + seconds(result_tmp$time)),
                      dir_wind =result_tmp$dir_wind,
                      vel_wind = result_tmp$vel_wind,
                      rain = result_tmp$rain)
