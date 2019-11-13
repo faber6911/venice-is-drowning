@@ -440,7 +440,7 @@ sapply(tt, anyNA)
 
 Tutti gli anni sembrerebbero completi, non sono presenti NA values.
 
-## Combinazione
+## Combinazione e controllo
 
 A questo punto procediamo a combinare i nostri dati relativi alle maree:
 
@@ -459,11 +459,55 @@ result_xts <- xts(order.by=(result_tmp$date + seconds(result_tmp$time)),
 attr(result_xts, 'frequency') <- 24
 ```
 
+Sappiamo già che la nostra serie non presenta *missing values*, controlliamo se sono presenti duplicati nelle nostre istanze
+
+```{r check duplicated, echo=T}
+dup <- duplicated(index(result_xts), fromLast=TRUE)
+sum(dup)
+```
+
+Ne sono stati rilevati alcuni, controlliamo di quali si tratta
+
+```{r find duplicates, echo = T}
+result_xts[index(result_xts[dup,])]
+```
+
+Decidiamo di tenere solo i primi valori, probabilmente si tratta di rilevazioni ripetute
+
+```{r delete duplicates, echo=T}
+result_xts <- result_xts[!dup]
+```
+
+Adesso controlliamo se sono presenti buchi temporali nella nostra serie dovuti magari a mancanze nelle rilevazioni
+
+```{r missing dates, echo=T}
+result_xts_index <- index(result_xts)
+all_points <- seq(first(result_xts_index), last(result_xts_index), by="hour")
+length(all_points) == length(index(result_xts))
+```
+
+Sembrerebbe che effettivamente ci siano  dei buchi temporali, procediamo quindi a riempirli utilizzando i valori precedenti
+
+```{r fill missing dates, echo=T}
+venezia_xts <- xts(order.by=all_points)
+venezia_xts <- merge(result_xts, venezia_xts, join = "right")
+venezia_xts <- na.locf(venezia_xts)
+length(all_points) == length(index(venezia_xts))
+```
+
+```{r parse to df, echo=T}
+df <- data.frame(venezia_xts)
+colnames(df) <- c("level")
+df$datetime <- rownames(df)
+rownames(df) <- NULL
+head(df)
+```
+
 
 ```{r data creation, echo=T}
-write.zoo(result_xts, file="../data/output/venezia_xts.csv", col.names=c("datetime", "level"))
+write.zoo(venezia_xts, file="../data/output/venezia_xts.csv", col.names=c("datetime", "level"))
 
-write.csv(result, file="../data/output/venezia.csv", row.names = FALSE)
+write.csv(df, file="../data/output/venezia.csv", row.names = FALSE)
 
 rm(list = ls())
 ```
