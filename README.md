@@ -7,26 +7,27 @@
 <h6 align = "center">a Streaming Data Management and Time Series Analysis project</h6>
 
 <p align="center">
-  <a href="#fonti dati">Fonti dati &nbsp;</a> |
-  <a href="#obiettivi">Obiettivi &nbsp;</a> |
+  <a href="#overview"> Overview &nbsp;</a>|
+  <a href="#data sources">Data sources &nbsp;</a>|
+  <a href="#obiettivi">Objectives &nbsp;</a>|
   <a href="#aboutus">&nbsp; About us &nbsp;</a>
 </p>
 
-<a name="fonti dati"></a>
-## &#9741; &nbsp; Fonti dati
 
-kaggle = https://www.kaggle.com/lbronchal/venezia
+<a name="overview"></a>
+## &#9741; &nbsp; Overview
+Need to improve a description.
 
-github = https://github.com/lbcommer/venezia-high-waters
-
-dati meteo (1983-2002) = https://www.comune.venezia.it/it/content/osservatorio-bioclimatologico-dellospedale-al-mare-lido-venezia#b6af8d
-
-dati meteo giornalieri = https://www.ilmeteo.it/portale/archivio-meteo/Venezia
-
-dati meteo orari (ma lunghi da scaricare) = https://www.venezia.isprambiente.it/index.php?folder_id=20&stazione_id=115&tipo_dati_id=30&view=year
+<a name="data sources"></a>
+## &#9741; &nbsp; Data sources
+<ul>
+  <li><a href = "https://www.kaggle.com/lbronchal/venezia">kaggle</a> dataset</li>
+  <li><a href = "https://github.com/lbcommer/venezia-high-waters">github repo</a> inspiration</li>
+  <li><a href = "https://www.comune.venezia.it/it/content/osservatorio-bioclimatologico-dellospedale-al-mare-lido-venezia#b6af8d">weather data</a> for data integration (optional)</li>
+</ul>
 
 <a name="obiettivi"></a>
-## &#9741; &nbsp; Obiettivi
+## &#9741; &nbsp; Objectives
 
 <ul>
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 (analisi univariata)</li>
