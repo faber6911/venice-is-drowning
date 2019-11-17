@@ -1,8 +1,10 @@
-## Credenziali ISPRA per acquisizione dati
+## Dati meteo 2000 2019
 
-Username: f.dintinosante@campus.unimib.it
-pw: vlud3fov
+Dati orari di precipitazione, velocità del vento e direzione prevalente di provenienza del vento, rilevati presso la stazione meteorologica di Venezia Ist. Cavanis, dal 01/03/2000 al 12/11/2019.
 
-## Criticit� dati pioggia
-
-I dati acquisiti da ISPRA sono decisamente incompleti. Occorre valutare se valga la pena utilizzarli oppure procedere semplicemente ad effettuare l'analisi sui soli dati fino al 2002.
+Si fanno presente, inoltre, le seguenti condizioni:
+<ul>
+<li>non commercializzare o cedere a terzi i dati ricevuti, salvo preventiva ed espressa autorizzazione scritta;</li>
+  <li>utilizzare gli stessi esclusivamente per gli scopi dichiarati;</li>
+  <li>qualsiasi forma di pubblicazione o diramazione del dato dovrà citare la fonte</li>
+</ul>
