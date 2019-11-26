@@ -1526,11 +1526,6 @@ $(document).ready(function () {
       <li><a href="#verifica-dei-dati">Verifica dei dati</a></li>
       <li><a href="#combinazione-e-controllo">Combinazione e controllo</a></li>
       </ul></li>
-      <li><a href="#dati-meteorologici">Dati meteorologici</a><ul>
-      <li><a href="#premessa-1">Premessa</a></li>
-      <li><a href="#processing-1">Processing</a></li>
-      <li><a href="#combinazione-dati-maree-e-dati-meteorologici">Combinazione dati maree e dati meteorologici</a></li>
-      </ul></li>
       </ul>
     </div>
 </div>
@@ -1988,94 +1983,6 @@ FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE </code><
 <a class="sourceLine" id="cb32-3" title="3"><span class="kw">write.csv</span>(df, <span class="dt">file=</span><span class="st">&quot;../data/output/venezia.csv&quot;</span>, <span class="dt">row.names =</span> <span class="ot">FALSE</span>)</a>
 <a class="sourceLine" id="cb32-4" title="4"></a>
 <a class="sourceLine" id="cb32-5" title="5"><span class="kw">rm</span>(<span class="dt">list =</span> <span class="kw">ls</span>())</a></code></pre></div>
-</div>
-</div>
-<div id="dati-meteorologici" class="section level1">
-<h1>Dati meteorologici</h1>
-<div id="premessa-1" class="section level2">
-<h2>Premessa</h2>
-<p>Purtroppo i dati meteorologici risultano particolarmente frammentati: mentre infatti l’osservatorio storico ha provveduto a rilevarli in blocco fino al 2002 a partire dal 2003 sono state installate una serie di centraline automatiche nella laguna di Venezia. Queste centraline dispongono solo di alcuni tipi di dato, alcune dispongono dei dati riguardo le precipitazioni, altre di quelli relativi direzione e velocità del vento. E’ perciò necessario reperire i dati dalle diverse fonti e portarli ad un formato comune così da creare un unico blocco.</p>
-<p>Elemento più significativo riguardo questo aspetto è che i dati reperibili dalle centraline sono molto frammentati, discontinui e spesso incoerenti poichè non sottoposti a validazione. Per ora quindi si provvederà ad utilizzare soltanto i dati dell’osservatorio storico.</p>
-</div>
-<div id="processing-1" class="section level2">
-<h2>Processing</h2>
-<p>Innanzitutto importiamo i dati meteorologici dell’osservatorio storico, disponibili dal 1983 al 2002:</p>
-<p>Poichè quando in assenza di pioggia la cella è rimasta senza imputazione forziamo la compilazione con il valore 0.</p>
-<p>A questo punto non ci resta altro che combinare i nostri files in un file unico:</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb33-1" title="1">tt &lt;-<span class="st"> </span><span class="kw">list</span>(data_rain_<span class="dv">1983</span>_<span class="dv">1984</span>, data_rain_<span class="dv">1985</span>_<span class="dv">1989</span>, data_rain_<span class="dv">1990</span>_<span class="dv">1994</span>,</a>
-<a class="sourceLine" id="cb33-2" title="2">           data_rain_<span class="dv">1995</span>_<span class="dv">1999</span>, data_rain_<span class="dv">2000</span>_<span class="dv">2002</span>)</a></code></pre></div>
-<p>Controlliamo se sono presenti NA values:</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb34-1" title="1"><span class="kw">sapply</span>(tt, anyNA)</a></code></pre></div>
-<pre><code>[1] FALSE FALSE FALSE FALSE FALSE</code></pre>
-<p>Concateniamo</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb36-1" title="1">result_tmp &lt;-<span class="st"> </span><span class="kw">do.call</span>(rbind, tt)</a>
-<a class="sourceLine" id="cb36-2" title="2"></a>
-<a class="sourceLine" id="cb36-3" title="3">result &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">datetime =</span> (result_tmp<span class="op">$</span>date <span class="op">+</span><span class="st"> </span><span class="kw">seconds</span>(result_tmp<span class="op">$</span>time)),</a>
-<a class="sourceLine" id="cb36-4" title="4">                     <span class="dt">dir_wind =</span>result_tmp<span class="op">$</span>dir_wind,</a>
-<a class="sourceLine" id="cb36-5" title="5">                     <span class="dt">vel_wind =</span> result_tmp<span class="op">$</span>vel_wind,</a>
-<a class="sourceLine" id="cb36-6" title="6">                     <span class="dt">rain =</span> result_tmp<span class="op">$</span>rain)</a></code></pre></div>
-<div class="sourceCode" id="cb37"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb37-1" title="1">result<span class="op">$</span>datetime &lt;-<span class="st"> </span><span class="kw">as.character</span>(result<span class="op">$</span>datetime)</a></code></pre></div>
-</div>
-<div id="combinazione-dati-maree-e-dati-meteorologici" class="section level2">
-<h2>Combinazione dati maree e dati meteorologici</h2>
-<p>Ora che abbiamo realizzato il nostro dataset riguardo il meteo importiamo il file realizzato in precedenza riguardante le maree:</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb38-1" title="1">tides &lt;-<span class="st"> </span><span class="kw">read.csv</span>(<span class="st">&quot;../data/output/venezia.csv&quot;</span>)</a>
-<a class="sourceLine" id="cb38-2" title="2"><span class="kw">head</span>(tides)</a></code></pre></div>
-<pre><code>  level            datetime
-1    44 1983-01-01 01:00:00
-2    35 1983-01-01 02:00:00
-3    23 1983-01-01 03:00:00
-4    10 1983-01-01 04:00:00
-5     1 1983-01-01 05:00:00
-6    -1 1983-01-01 06:00:00</code></pre>
-<p>Effettuiamo il parsing della data in formato datetime e filtriamo tutti le date successive al 31-12-2002 poichè non disponiamo di dati meteo successivi a questa data</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb40-1" title="1">tides<span class="op">$</span>datetime &lt;-<span class="st"> </span><span class="kw">as.POSIXct</span>(tides<span class="op">$</span>datetime, <span class="dt">format =</span> <span class="st">&quot;%Y-%m-%d %H:%M:%OS&quot;</span>)</a>
-<a class="sourceLine" id="cb40-2" title="2"></a>
-<a class="sourceLine" id="cb40-3" title="3">tides <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">filter</span>(datetime <span class="op">&lt;=</span><span class="st"> &quot;2002-12-31 23:00:00&quot;</span>) -&gt;<span class="st"> </span>tides_filtered</a>
-<a class="sourceLine" id="cb40-4" title="4"></a>
-<a class="sourceLine" id="cb40-5" title="5"><span class="kw">str</span>(tides_filtered)</a></code></pre></div>
-<pre><code>&#39;data.frame&#39;:   175299 obs. of  2 variables:
- $ level   : num  44 35 23 10 1 -1 6 17 31 41 ...
- $ datetime: POSIXct, format: &quot;1983-01-01 01:00:00&quot; &quot;1983-01-01 02:00:00&quot; ...</code></pre>
-<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb42-1" title="1"><span class="kw">str</span>(result)</a></code></pre></div>
-<pre><code>&#39;data.frame&#39;:   175319 obs. of  4 variables:
- $ datetime: chr  &quot;1983-01-01 01:00:00&quot; &quot;1983-01-01 02:00:00&quot; &quot;1983-01-01 03:00:00&quot; &quot;1983-01-01 04:00:00&quot; ...
- $ dir_wind: num  292 292 292 292 270 ...
- $ vel_wind: num  7 5 6 3 4 6 3 4 3 3 ...
- $ rain    : num  0 0 0 0 0 0 0 0 0 0 ...</code></pre>
-<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb44-1" title="1">tides_filtered<span class="op">$</span>datetime &lt;-<span class="st"> </span><span class="kw">as.character</span>(tides_filtered<span class="op">$</span>datetime)</a>
-<a class="sourceLine" id="cb44-2" title="2"></a>
-<a class="sourceLine" id="cb44-3" title="3"><span class="kw">str</span>(result)</a></code></pre></div>
-<pre><code>&#39;data.frame&#39;:   175319 obs. of  4 variables:
- $ datetime: chr  &quot;1983-01-01 01:00:00&quot; &quot;1983-01-01 02:00:00&quot; &quot;1983-01-01 03:00:00&quot; &quot;1983-01-01 04:00:00&quot; ...
- $ dir_wind: num  292 292 292 292 270 ...
- $ vel_wind: num  7 5 6 3 4 6 3 4 3 3 ...
- $ rain    : num  0 0 0 0 0 0 0 0 0 0 ...</code></pre>
-<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb46-1" title="1"><span class="kw">str</span>(tides_filtered)</a></code></pre></div>
-<pre><code>&#39;data.frame&#39;:   175299 obs. of  2 variables:
- $ level   : num  44 35 23 10 1 -1 6 17 31 41 ...
- $ datetime: chr  &quot;1983-01-01 01:00:00&quot; &quot;1983-01-01 02:00:00&quot; &quot;1983-01-01 03:00:00&quot; &quot;1983-01-01 04:00:00&quot; ...</code></pre>
-<p>Occorrerebbe indagare meglio sul perchè ci sia questa differenza di 21 istanze tra i due dataset, probabilmente nei dataset delle maree alcune ore sono assenti</p>
-<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb48-1" title="1"><span class="kw">nrow</span>(tides_filtered)</a></code></pre></div>
-<pre><code>[1] 175299</code></pre>
-<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb50-1" title="1"><span class="kw">nrow</span>(result)</a></code></pre></div>
-<pre><code>[1] 175319</code></pre>
-<p>A questo punto si procede con un right_join</p>
-<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb52-1" title="1">merged &lt;-<span class="st"> </span><span class="kw">right_join</span>(result, tides_filtered)</a>
-<a class="sourceLine" id="cb52-2" title="2"><span class="kw">head</span>(merged)</a></code></pre></div>
-<pre><code>             datetime dir_wind vel_wind rain level
-1 1983-01-01 01:00:00    292.5        7    0    44
-2 1983-01-01 02:00:00    292.5        5    0    35
-3 1983-01-01 03:00:00    292.5        6    0    23
-4 1983-01-01 04:00:00    292.5        3    0    10
-5 1983-01-01 05:00:00    270.0        4    0     1
-6 1983-01-01 06:00:00    270.0        6    0    -1</code></pre>
-<p>E verifichiamo se nel nuovo dataset sono presenti valori mancanti:</p>
-<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb54-1" title="1"><span class="kw">sapply</span>(merged, anyNA)</a></code></pre></div>
-<pre><code>datetime dir_wind vel_wind     rain    level 
-   FALSE    FALSE    FALSE    FALSE    FALSE </code></pre>
-<p>Avendo effettuato il right join sembrerebbero non presentarsi missing values. Procediamo quindi a salvare il nostro dataset:</p>
-<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb56-1" title="1"><span class="kw">write.csv</span>(merged, <span class="dt">file=</span><span class="st">&quot;../data/output/venezia_tides_weather.csv&quot;</span>, <span class="dt">row.names =</span> <span class="ot">FALSE</span>)</a></code></pre></div>
 </div>
 </div>
 </div>
