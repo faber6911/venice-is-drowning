@@ -22,13 +22,16 @@ acfpacf <- function(x, max.lag=36){
 
 # import data --------------------------------------------------------------
 
-data <- read.table("data/output/venezia_xts.csv", sep = " ", header = T)
+data <- read.csv("data/output/venezia.csv", header = T)
 head(data)
 str(data)
 #data <- as.data.frame(data)
-data$datetime <- as.character(data$datetime)
+#data$datetime <- as.character(data$datetime)
 #head(data)
 #anyNA(data$datetime)
+
+#data$datetime <- as.POSIXct(data$datetime, "%Y-%m-%d %H:%M:%OS", tz =  "Europe/Berlin")
+#head(data)
 
 # inspections -------------------------------------------------------------
 
@@ -40,17 +43,31 @@ date <- seq(from=as.POSIXct(data$datetime[1],
             by = "1 hour")
 tail(date)
 
-data_ts <- xts(order.by = date,
+data_ts <- xts(order.by = data$datetime,
                x = data$level,
                frequency = 24,
                tzone = "Europe/Berlin")
 
 plot(data_ts, main = "Venice tides")
 
+
+plot(data_ts["2016-12-31 23:00:00/2018-12-31 23:00:00"], main = "Venice tides 2017 2018")
+df <- data_ts["2016-12-31 23:00:00/2018-12-31 23:00:00"]
+length(index(df)) == length(seq(from = start(df), to = end(df), by = "hour"))
+
+length(index(df))
+date <- seq(from = start(df),
+            length.out = length(index(df)),
+            by = "1 hour")
+
 # check for stationarity in variance ----------------------------------------
 
-data %>%
-  add_column(date = date(data$datetime)) %>%
+# convertiamo in df solo per verificare stazionarietà in varianza
+ddf <- data.frame(level = coredata(df), datetime = index(df))
+head(ddf)
+
+ddf %>%
+  add_column(date = date(ddf$datetime)) %>%
   group_by(date) %>% 
   mutate(mean_day = mean(level), sd_day = sd(level)) %>%
   select(date, mean_day, sd_day) %>% 
@@ -62,6 +79,68 @@ data %>%
        y = "Day std") +
   geom_smooth(method = "lm", se = FALSE)+
   theme_bw()
+
+# sembrerebbe esserci un certo trend crescente ma dovrebbe essere trascurabile, assumiamo che sia stazionaria
+# in varianza
+
+
+# verifichiamo la stazionarietà in media
+
+plot(ddf$level, type = "l")
+abline(h = mean(coredata(df)), col = "red", lty = 2, lwd = 0.8)
+
+# a prima vista sembrerebbe essere stazionaria ma possiamo testare questa impressione
+
+
+library(urca)
+test_stat <- ur.df(ddf$level, "drift", lags = 24, selectlags = "AIC")
+summary(test_stat)
+# anche il test conferma essere stazionaria
+
+hist(ddf$level, prob = TRUE, col = "lightblue", main = "Tides density plot", xlab = "Level")
+lines(density(ddf$level), col = "red", lwd = 2, lty = 2)
+abline(v = mean(ddf$level), col = "blue", lwd = 2, lty = 2)
+
+
+# il fenomeno sembrerebbe distribuirsi normalmente
+
+mod1 <- auto.arima(ts(ddf$level, frequency = 12), stepwise = F)
+summary(mod1)
+mod2 <- auto.arima(ddf$level)
+summary(mod2)
+
+
+acfpacf(mod1$residuals)
+acfpacf(mod2$residuals)
+############# DA QUI IN POI DEPRECATO ##############
+
+plot(forecast(mod1, h = 168))
+pred <- forecast(mod1, h = 24)
+plot(pred)
+plot(pred, xlim = c(1460,1464))
+
+plot(ddf$level[2:48], type = "l")
+
+## occorre approfondire meglio l'argomento stagionalità perchè sembrerebbe piuttosto contorto,
+#infatti scombussola andamento
+
+
+
+#plot(density(ddf$level))
+
+# data %>%
+#   add_column(date = date(data$datetime)) %>%
+#   group_by(date) %>% 
+#   mutate(mean_day = mean(level), sd_day = sd(level)) %>%
+#   select(date, mean_day, sd_day) %>% 
+#   distinct(date, mean_day, sd_day) %>%
+#   ggplot(aes(mean_day, sd_day)) + 
+#   geom_point() + 
+#   ggtitle("Mean per day vs Std per day") +
+#   labs(x = "Day mean",
+#        y = "Day std") +
+#   geom_smooth(method = "lm", se = FALSE)+
+#   theme_bw()
 
 
 # Osservando questo plot sembrerebbe che la serie sia stazionaria in varianza.
