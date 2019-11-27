@@ -10,6 +10,8 @@ library(ggplot2)
 library(forecast)
 library(tseries)
 library(MLmetrics)
+library(urca)
+
 
 
 acfpacf <- function(x, max.lag=36){
@@ -25,37 +27,61 @@ acfpacf <- function(x, max.lag=36){
 data <- read.csv("data/output/venezia.csv", header = T)
 head(data)
 str(data)
+
+
 #data <- as.data.frame(data)
 #data$datetime <- as.character(data$datetime)
 #head(data)
 #anyNA(data$datetime)
 
-#data$datetime <- as.POSIXct(data$datetime, "%Y-%m-%d %H:%M:%OS", tz =  "Europe/Berlin")
-#head(data)
+data$datetime <- as.POSIXct(data$datetime,
+                            format = "%Y-%m-%d %H:%M:%OS",
+                            tz =  "Europe/Berlin")
+head(data)
+anyNA(data)
+# mancano una serie di datetime, tutti alle 2.00 del mattino, deve esserci stato un qualche errore, sistemiamo
+imp <- paste0(date(data$datetime[as.numeric(rownames(data[is.na(data$datetime),]))-1]), " 02:00:00")
+data$datetime[as.numeric(rownames(data[is.na(data$datetime),]))] <- imp
+anyNA(data)
+
+
+data$datetime <- as.POSIXct(data$datetime,
+                            format = "%Y-%m-%d %H:%M:%OS",
+                            tz =  "Europe/Berlin")
+
+anyNA(data)
+
+# risolto
 
 # inspections -------------------------------------------------------------
 
 
-date <- seq(from=as.POSIXct(data$datetime[1],
-                            format = "%Y-%m-%d %H:%M:%OS",
-                            tz = "Europe/Berlin"),
-            length.out = nrow(data),
-            by = "1 hour")
-tail(date)
+# date <- seq(from=as.POSIXct(data$datetime[1],
+#                             format = "%Y-%m-%d %H:%M:%OS",
+#                             tz = "Europe/Berlin"),
+#             length.out = nrow(data),
+#             by = "1 hour")
+# tail(date)
 
 data_ts <- xts(order.by = data$datetime,
                x = data$level,
                frequency = 24,
                tzone = "Europe/Berlin")
 
-plot(data_ts, main = "Venice tides")
+plot(data_ts,
+     main = "Venice tides") # intera time series
+
+ggtsdisplay(data_ts["2015-12-31 23:00:00/2018-12-31 23:00:00"],
+            main = "Venice tides 2016 2018",
+            lag.max = 72,
+            theme = theme_bw()) # 2016-2018
 
 
-plot(data_ts["2016-12-31 23:00:00/2018-12-31 23:00:00"], main = "Venice tides 2017 2018")
-df <- data_ts["2016-12-31 23:00:00/2018-12-31 23:00:00"]
+df <- data_ts["2015-12-31 23:00:00/2018-12-31 23:00:00"]
 length(index(df)) == length(seq(from = start(df), to = end(df), by = "hour"))
 
 length(index(df))
+
 date <- seq(from = start(df),
             length.out = length(index(df)),
             by = "1 hour")
@@ -63,6 +89,7 @@ date <- seq(from = start(df),
 # check for stationarity in variance ----------------------------------------
 
 # convertiamo in df solo per verificare stazionarietà in varianza
+
 ddf <- data.frame(level = coredata(df), datetime = index(df))
 head(ddf)
 
@@ -77,7 +104,8 @@ ddf %>%
   ggtitle("Mean per day vs Std per day") +
   labs(x = "Day mean",
        y = "Day std") +
-  geom_smooth(method = "lm", se = FALSE)+
+  geom_smooth(method = "lm", se = FALSE) +
+  annotate("label", label = "Seems to be stationary", x = 90, y = 26, size = 5) +
   theme_bw()
 
 # sembrerebbe esserci un certo trend crescente ma dovrebbe essere trascurabile, assumiamo che sia stazionaria
@@ -86,33 +114,124 @@ ddf %>%
 
 # verifichiamo la stazionarietà in media
 
-plot(ddf$level, type = "l")
-abline(h = mean(coredata(df)), col = "red", lty = 2, lwd = 0.8)
+ddf %>% 
+  ggplot(aes(y = level, x = datetime)) +
+  geom_line() +
+  geom_hline(yintercept = mean(ddf$level),
+             linetype = "dashed",
+             color = "darkred",
+             size = 1)  +
+  annotate("label",
+           label = paste0("Mean = ",
+                          round(mean(ddf$level), 2)),
+           y = 150,
+           x = as.POSIXct("2016-03-01 23:00:00"),
+           size = 5,
+           colour = "black") +
+  labs(title = "Tides data for 2016-2018 years with mean (in red)",
+       x = "Datetime",
+       y = "Level") +
+  theme_bw()
+
+# plot(ddf$level, type = "l")
+# abline(h = mean(coredata(df)), col = "red", lty = 2, lwd = 0.8)
 
 # a prima vista sembrerebbe essere stazionaria ma possiamo testare questa impressione
 
 
-library(urca)
-test_stat <- ur.df(ddf$level, "drift", lags = 24, selectlags = "AIC")
+test_stat <- ur.df(ddf$level,
+                   type = "drift",
+                   lags = 24,
+                   selectlags = "AIC")
 summary(test_stat)
+
+
 # anche il test conferma essere stazionaria
 
-hist(ddf$level, prob = TRUE, col = "lightblue", main = "Tides density plot", xlab = "Level")
-lines(density(ddf$level), col = "red", lwd = 2, lty = 2)
-abline(v = mean(ddf$level), col = "blue", lwd = 2, lty = 2)
+ddf %>%
+  ggplot(aes(x = level, y = ..density..)) +
+  geom_histogram(colour = "black",
+                 fill = "lightblue",
+                 bins = 50) + 
+  geom_density(fill = "red",
+               alpha = .2) +
+  geom_vline(xintercept = mean(ddf$level),
+             linetype = "dashed",
+             color = "darkred",
+             size = 1) +
+  labs(x = "Level",
+       y = "Density",
+       title = "Density plot with histogram for tides level distribution") +
+  annotate("label",
+           label = "Seems to be normally distributed",
+           x = 120,
+           y = 0.012,
+           size = 5) +
+  theme_bw()
+
+
+# hist(ddf$level, prob = TRUE, col = "lightblue", main = "Tides density plot", xlab = "Level")
+# lines(density(ddf$level), col = "red", lwd = 2, lty = 2)
+# abline(v = mean(ddf$level), col = "blue", lwd = 2, lty = 2)
 
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
-mod1 <- auto.arima(ts(ddf$level, frequency = 12), stepwise = F)
+
+# define train and test set -----------------------------------------------
+trn <- ddf[1:(nrow(ddf)-168),] # train sono 3 anni meno 1 settimana
+head(trn)
+tst <- ddf[(nrow(ddf)-168):nrow(ddf),] # test 1 settimana
+
+head(tst, 1)
+tail(tst, 1)
+
+ggtsdisplay(trn$level,
+            main = "Venice tides 01/2016 12/2018",
+            lag.max = 72,
+            theme = theme_bw())
+
+ggtsdisplay(tst$level,
+            main = "Venice tides last week 2018",
+            lag.max = 72,
+            theme = theme_bw())
+
+# a giudicare dai grafici ACF e PACF sembrerebbe trattarsi di un modello MA stagionale
+# poichè PACF decresce geometricamente mentre ACF presenta dei picchi stagionali
+
+#diff_level <- diff(ddf$level, 672)
+
+
+# model 1 -----------------------------------------------------------------
+acfpacf(trn$level)
+
+mod1 <- Arima(trn$level, c(0,1,0), list(order = c(2,1,2), period = 24))
 summary(mod1)
+# mod1$coef
+# sqrt(mod1$var.coef)
+# names(mod1)
+acfpacf(mod1$residuals, max.lag = 72)
+
+
+# model auto --------------------------------------------------------------
+mod_auto <- auto.arima(ts(ddf$level, frequency = 24), stepwise = F)
+summary(mod_auto)
+# auto arima trova modello (3,0,2)(0,1,0)[24]
+acfpacf(mod_auto$residuals, max.lag = 72)
+
 mod2 <- auto.arima(ddf$level)
 summary(mod2)
 
 
 acfpacf(mod1$residuals)
 acfpacf(mod2$residuals)
-############# DA QUI IN POI DEPRECATO ##############
+
+
+
+                        #########################################################
+                        #  ############# DA QUI IN POI DEPRECATO ############## #
+                        #########################################################
+
 
 plot(forecast(mod1, h = 168))
 pred <- forecast(mod1, h = 24)
