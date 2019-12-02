@@ -86,6 +86,7 @@ date <- seq(from = start(df),
             length.out = length(index(df)),
             by = "1 hour")
 
+
 # check for stationarity in variance ----------------------------------------
 
 # convertiamo in df solo per verificare stazionarietà in varianza
@@ -177,7 +178,6 @@ ddf %>%
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
-
 # define train and test set -----------------------------------------------
 trn <- ddf[1:(nrow(ddf)-168),] # train sono 3 anni meno 1 settimana
 head(trn)
@@ -201,6 +201,39 @@ ggtsdisplay(tst$level,
 
 #diff_level <- diff(ddf$level, 672)
 
+
+# plot(trn$level, type = "l")
+# plot(trn_moon$distance, type = "l")
+# 
+# moon <- read.table("D:/GIT/venice-is-drowning/moon_distance/moon_distances.csv", quote="\"", comment.char="")
+# plot(moon$V1,  type = "l")
+# 
+# trn_moon <- moon[1:(nrow(moon)-168),]
+# tst_moon <- moon[(nrow(moon)-168):nrow(moon),]
+# #trn_moon$datetime <- trn$datetime
+# trn_moon <- data.frame("distance" = trn_moon)
+# tst_moon <- data.frame("distance" = tst_moon)
+# 
+# trn_moon$datetime <- trn$datetime
+# tst_moon$datetime <- tst$datetime
+# 
+# ggtsdisplay(trn_moon$distance)
+# 
+# reg <- 1/(trn_moon$distance)
+# length(trn$level)
+# 
+# mod_lin <- lm(diff(trn$level, 12) ~ diff(trn_moon$distance, 12))
+# 
+# summary(mod_lin)
+# 
+# plot(mod_lin$residuals, type = "l")
+# 
+# ggtsdisplay(trn$level)
+# ggtsdisplay(mod_lin$residuals)
+# 
+# 
+# plot(1/trn_moon$distance^2, type = "l")
+# plot(tst$level, type = "l")
 
 # model 1 -----------------------------------------------------------------
 acfpacf(trn$level)
