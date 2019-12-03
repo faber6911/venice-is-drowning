@@ -201,6 +201,25 @@ ggtsdisplay(tst$level,
 
 #diff_level <- diff(ddf$level, 672)
 
+# plot(tst$level, type = "l")
+# freq <- outer(1:169, 1:2)*2*pi/24
+# freq2 <- outer(1:169, 1:2)*2*pi/12
+# freq3 <- outer(1:26137, 1:2)*2*pi/400
+# 
+# plot(rowSums(cbind(sin(freq), cos(freq))), type = "l")
+# lines(rowSums(sin(freq2)), col = "red")
+# length(trn$level)
+# length(rowSums(sin(freq)))
+# length(tst$level)
+# 
+# max(trn$level)
+# min(trn$level)
+# 
+# plot(trn$level[1:(168*16)], type = "l")
+# mod1 <- lm(trn$level ~ rowSums(cbind(sin(freq), cos(freq), sin(freq2), cos(freq2))))
+# summary(mod1)
+# plot(mod1$residuals, type = "l")
+# ggtsdisplay(mod1$residuals)
 
 # plot(trn$level, type = "l")
 # plot(trn_moon$distance, type = "l")
