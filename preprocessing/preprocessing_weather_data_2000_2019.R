@@ -15,24 +15,27 @@ data<- read_delim("D:/GIT/venice-is-drowning/new_data/dati_meteo/dati_meteo_2000
 
 head(data)
 
-View(data)
+#View(data)
 
 # troviamo i punti in  cui il dataset ricomincia
 print(which(data$DATA == "01/03/2000" & data$ORA == "01"))
 
+326509-163255
 # tagliamo i dati relativi alla direzione del vento in formato stringa
 data <- data[163255:nrow(data),]
 head(data)
+nrow(data)
+print(which(data$DATA == "01/03/2000" & data$ORA == "01"))
 
 # creiamo 3 dataset distinti per ogni feature, pioggia, direzione vento ed intensità vento
 dir_wind <- data[1:163254,]
 head(dir_wind)
-head(dir_wind)
+tail(dir_wind)
 
 rain <- data[163255:333835,]
 vel_wind <- data[333836:nrow(data),]
 
-View(dir_wind)
+#View(dir_wind)
 
 # realizziamo colonna datetime
 dir_wind$datetime <- as.Date(dir_wind$DATA, format = "%d/%m/%Y") + hours(as.numeric(dir_wind$ORA))
@@ -71,7 +74,19 @@ dir_wind$datetime <- as.character(dir_wind$datetime)
 vel_wind$datetime <- as.character(vel_wind$datetime)
 rain$datetime <- as.character(rain$datetime)
 
-length(seq(from = rain$datetime[1], to = rain$datetime[nrow(rain)], by = "hour"))
+# occorre verificare come approcciare il problema dei missing values
+nrow(rain) == length(seq(from = as.POSIXct(rain$datetime[1]), to = as.POSIXct(rain$datetime[nrow(rain)]), by = "hour"))
+
+all_data = seq(from = as.POSIXct(rain$datetime[1], tz = ""), to = as.POSIXct(rain$datetime[nrow(rain)], ""), by = "hour")
+length(rain$datetime)
+View(unique(all_data[! all_data %in% rain$datetime]))
+setdiff(rain$datetime, all_data)
+all_data
+all_data <- strftime(all_data)
+all_data
+
+length(all_data)
+length(rain$datetime)
 
 # nessuno dei dati sembrerebbe completo, mancano delle osservazioni
 
@@ -103,3 +118,4 @@ tail(final)
 print(paste0("Mancano ",
       length(seq(from = as.POSIXct("2003-01-01 00:00:00"), to = as.POSIXct("2019-01-01 00:00:00"), by = "hour")) - nrow(final)
       ," osservazioni"))
+
