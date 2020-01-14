@@ -1,0 +1,219 @@
+---
+title: "Venice is drowning (preprocessing)"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+
+```{r packages, echo=FALSE}
+library(readr)
+library(lubridate)
+library(dplyr)
+library(xts)
+```
+
+
+# Dati meteorologici
+
+## Premessa
+
+Purtroppo i dati meteorologici risultano particolarmente frammentati: mentre infatti l'osservatorio storico ha provveduto a rilevarli in blocco fino al 2002 a partire dal 2003 sono state installate una serie di centraline automatiche nella laguna di Venezia. Queste centraline dispongono solo di alcuni tipi di dato, alcune dispongono dei dati riguardo le precipitazioni, altre di quelli relativi direzione e velocità del vento. E' perciò necessario reperire i dati dalle diverse fonti e portarli ad un formato comune così da creare un unico blocco.
+
+Elemento più significativo riguardo questo aspetto è che i dati reperibili dalle centraline sono molto frammentati, discontinui e spesso incoerenti poichè non sottoposti a validazione. Per ora quindi si provvederà ad utilizzare soltanto i dati dell'osservatorio storico.
+
+## Processing
+
+Innanzitutto importiamo i dati meteorologici dell'osservatorio storico, disponibili dal 1983 al 2002:
+
+```{r}
+data_rain_1983_1984 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1980_1984.csv", delim=";",
+                                  locale = locale("it"),
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=26306)
+
+data_rain_1983_1984[is.na(data_rain_1983_1984)] <- 0.0
+
+data_rain_1985_1989 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1985_1989.csv", delim=";",
+                                  locale = locale("it"),
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=1)
+
+data_rain_1985_1989[is.na(data_rain_1985_1989)] <- 0.0
+
+data_rain_1990_1994 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1990_1994.csv", delim=";",
+                                  locale = locale("it"),
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=1)
+
+data_rain_1990_1994[is.na(data_rain_1990_1994)] <- 0.0
+
+data_rain_1995_1999 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_1995_1999.csv", delim=";",
+                                  locale = locale("it"),
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=1)
+
+data_rain_1995_1999[is.na(data_rain_1995_1999)] <- 0.0
+
+data_rain_2000_2002 <- read_delim("../new_data/dati_meteo/DB_OSSERVATORIO_2000_2002.csv", delim=";",
+                                  locale = locale("it"),
+                        col_types = cols_only(
+                          col_date("%d/%m/%Y"),
+                          col_time("%H.%M"),
+                          col_skip(),
+                          col_skip(),
+                          col_number(),
+                          col_number(),
+                          col_skip(),
+                          col_number(),
+                          col_skip()),
+                        col_names=c("date", "time", "dir_wind", "vel_wind", "rain"),
+                        skip=1)
+
+data_rain_2000_2002[is.na(data_rain_2000_2002)] <- 0.0
+```
+
+Poichè quando in assenza di pioggia la cella è rimasta senza imputazione forziamo la compilazione con il valore 0.
+
+A questo punto non ci resta altro che combinare i nostri files in un file unico:
+
+```{r weather data concat, echo=T}
+tt <- list(data_rain_1983_1984, data_rain_1985_1989, data_rain_1990_1994,
+           data_rain_1995_1999, data_rain_2000_2002)
+```
+
+Controlliamo se sono presenti NA values:
+
+```{r weather na check, echo=T}
+sapply(tt, anyNA)
+```
+
+Concateniamo
+
+```{r weather combination, echo=T}
+result_tmp <- do.call(rbind, tt)
+
+result <- data.frame(datetime = (result_tmp$date + seconds(result_tmp$time)),
+                     dir_wind =result_tmp$dir_wind,
+                     vel_wind = result_tmp$vel_wind,
+                     rain = result_tmp$rain)
+```
+
+```{r convert to char, echo=T}
+result$datetime <- as.character(result$datetime)
+```
+
+## Combinazione dati maree e dati meteorologici
+
+Ora che abbiamo realizzato il nostro dataset riguardo il meteo importiamo il file realizzato in precedenza riguardante le maree:
+
+```{r tides import, echo = T}
+tides <- read.csv("../data/output/venezia.csv")
+head(tides)
+```
+
+Effettuiamo il parsing della data in formato datetime e filtriamo tutti le date successive al 31-12-2002 poichè non disponiamo di dati meteo successivi a questa data
+
+```{r date parsing and filtering, echo=T}
+tides$datetime <- as.POSIXct(tides$datetime, format = "%Y-%m-%d %H:%M:%OS")
+
+tides %>% filter(datetime <= "2002-12-31 23:00:00") -> tides_filtered
+
+str(tides_filtered)
+str(result)
+```
+
+```{r structures, echo=T}
+tides_filtered$datetime <- as.character(tides_filtered$datetime)
+
+str(result)
+str(tides_filtered)
+```
+
+
+Occorrerebbe indagare meglio sul perchè ci sia questa differenza di 21 istanze tra i due dataset, probabilmente nei dataset delle maree alcune ore sono assenti
+
+```{r nrows, echo=T}
+nrow(tides_filtered)
+nrow(result)
+```
+
+A questo punto si procede con un right_join
+
+```{r right join, echo=T}
+merged <- right_join(result, tides_filtered)
+head(merged)
+```
+
+E verifichiamo se nel nuovo dataset sono presenti valori mancanti:
+
+```{r check na values for tides and weather, echo=T}
+sapply(merged, anyNA)
+```
+
+Avendo effettuato il right join sembrerebbero non presentarsi missing values. Procediamo quindi a salvare il nostro dataset:
+
+```{r save dataset, echo=T}
+write.csv(merged, file="../data/output/venezia_tides_weather.csv", row.names = FALSE)
+```
+
+
