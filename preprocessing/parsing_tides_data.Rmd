@@ -500,7 +500,11 @@ df <- data.frame(venezia_xts)
 colnames(df) <- c("level")
 df$datetime <- rownames(df)
 rownames(df) <- NULL
+```
+
+```{r head and tail, echo=T}
 head(df)
+tail(df)
 ```
 
 

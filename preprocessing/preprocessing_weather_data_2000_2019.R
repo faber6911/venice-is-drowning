@@ -33,14 +33,26 @@ head(dir_wind)
 tail(dir_wind)
 
 rain <- data[163255:333835,]
-vel_wind <- data[333836:nrow(data),]
+head(rain)
+tail(rain)
 
-#View(dir_wind)
+vel_wind <- data[333836:nrow(data),]
+head(vel_wind)
+tail(vel_wind)
 
 # realizziamo colonna datetime
 dir_wind$datetime <- as.Date(dir_wind$DATA, format = "%d/%m/%Y") + hours(as.numeric(dir_wind$ORA))
 rain$datetime <- as.Date(rain$DATA, format = "%d/%m/%Y") + hours(as.numeric(rain$ORA))
 vel_wind$datetime <- as.Date(vel_wind$DATA, format = "%d/%m/%Y") + hours(as.numeric(vel_wind$ORA))
+
+head(dir_wind)
+tail(dir_wind)
+
+head(rain)
+tail(rain)
+
+head(vel_wind)
+tail(vel_wind)
 
 # eliminiamo features inutili
 dir_wind$STAZIONE <- NULL
@@ -65,11 +77,18 @@ colnames(dir_wind) <- c("dir_wind", "datetime")
 colnames(vel_wind) <- c("vel_wind", "datetime")
 colnames(rain) <- c("rain", "datetime")
 
-head(dir_wind,2)
-head(vel_wind,2)
-head(rain,2)
+head(dir_wind)
+tail(dir_wind)
+head(vel_wind)
+tail(vel_wind)
+head(rain)
+tail(rain)
 
 # convertiamo datetime in character per evitare problemi di merge
+dir_wind <- as.data.frame(dir_wind)
+vel_wind <- as.data.frame(vel_wind)
+rain <- as.data.frame(rain)
+
 dir_wind$datetime <- as.character(dir_wind$datetime)
 vel_wind$datetime <- as.character(vel_wind$datetime)
 rain$datetime <- as.character(rain$datetime)
@@ -82,16 +101,16 @@ nrow(rain) == length(seq(from = as.POSIXct(rain$datetime[1]), to = as.POSIXct(ra
 # Vediamo appunto che il numero di date non corrisponde a quello che dovrebbe essere
 
 # estraiamo tutte le date
-all_data = seq(from = as.POSIXct(rain$datetime[1], tz = ""), to = as.POSIXct("2019-11-13 00:00:00", tz = ""), by = "hour")
-all_data <- strftime(all_data) #rimuoviamo la timezone che da solo noia
-head(all_data, 2)
-tail(all_data, 2)
+all_data = seq(from = as.POSIXlt(rain$datetime[1], tz = "UTC"), to = as.POSIXct("2019-11-13 00:00:00", tz = "UTC"), by = "hour")
+head(as.data.frame(all_data))
+all_data <- strftime(all_data, tz = "UTC") #rimuoviamo la timezone che da solo noia
+head(as.data.frame(all_data))
+tail(as.data.frame(all_data))
 
 # cominciamo realizzando un dataframe che contenga tutte le date
 yy <- as.data.frame(all_data)
 head(yy)
 tail(yy)
-
 
 # Merging datasets and define data interval -------------------------------
 
@@ -112,22 +131,22 @@ yy <- yy[1:165119, ]
 tail(yy)
 # il 2019 è stato rimosso
 
-yy[yy$all_data=="2015-01-01 00:00:00",]
-yy <- yy[130056:nrow(yy),]
+yy[yy$all_data=="2010-01-01 00:00:00",]
+yy <- yy[86232:nrow(yy),]
 head(yy)
 tail(yy)
-# adesso i dati partono da inizio 2015 e finiscono a fine 2018
+# adesso i dati partono da inizio 2010 e finiscono a fine 2018
 
 # Verifichiamo che i numeri effettivamente coincidano
-nrow(yy)
-length(seq(from = as.POSIXct("2015-01-01 00:00:00"), to = as.POSIXct("2018-12-31 23:00:00"), by = 'hour'))
+nrow(yy) #78888
+length(seq(from = as.POSIXct("2010-01-01 00:00:00"), to = as.POSIXct("2018-12-31 23:00:00"), by = 'hour'))
 
 # nessuno dei dati, rain, vel_wind e dir_wind sembrerebbe completo, occorre scegliere una strategia per l'handling
 # dei missing values
 
-sum(is.na(yy$rain)) # 166
-sum(is.na(yy$dir_wind)) # 84
-sum(is.na(yy$vel_wind)) # 84
+sum(is.na(yy$rain)) # 500
+sum(is.na(yy$dir_wind)) # 397
+sum(is.na(yy$vel_wind)) # 215
 
 # molto probabilmente velocità e direzione del vento sono rilevati dallo stesso sensore quindi i dati mancanti di
 # queste due misure quasi sicuramente coincidono, la pioggia invece è a sè stante
@@ -136,37 +155,5 @@ yy[is.na(yy$rain),] # un po più sparse rispetto a quelle mancanti del vento ma c
 yy[is.na(yy$dir_wind),] # 3 giorni e mezzo a giugno 2016
 
 
-
-
-# DA QUI DEPRECATO --------------------------------------------------------
-
-
-# effettuiamo il merge dei tre dataset
-# tmp <- merge(vel_wind, dir_wind, by = "datetime")
-# final <- merge(tmp, rain, by = "datetime")
-# 
-# tail(final)
-# 
-# print(which(final$datetime == "2019-01-01 00:00:00"))
-# final[153202,]
-# 
-# # eliminiamo la parte di 2019 che non ci serve poichè non avremmo comunque i relativi dati per le maree
-# final <- final[1:153202,]
-# 
-# # dal 24/12/2002 al 14/01/2003 compresi sono dati mancanti
-# 
-# tail(grep("2002-", final$datetime))
-# tail(final)
-# 
-# # scartiamo i dati dal 2000 a fine 2002 poichè già presenti negli altri dataset
-# final <- final[21875:nrow(final),]
-# rownames(final) <- NULL
-# 
-# head(final)
-# tail(final)
-# 
-# # conteggio totale dati mancanti
-# print(paste0("Mancano ",
-#       length(seq(from = as.POSIXct("2003-01-01 00:00:00"), to = as.POSIXct("2019-01-01 00:00:00"), by = "hour")) - nrow(final)
-#       ," osservazioni"))
-
+# Salviamo i dati meteo
+write.csv(yy, "../data/output/weatherData_2010-2018.csv", col.names = T, row.names = F)
