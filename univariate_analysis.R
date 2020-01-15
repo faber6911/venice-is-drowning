@@ -34,12 +34,12 @@ lunar_motion <- read.csv("moon_distance/moon_distances.csv", header = T)
 head(data)
 tail(data)
 str(data)
-describe(data)
+Hmisc::describe(data)
 
 head(lunar_motion)
 tail(lunar_motion)
 str(lunar_motion)
-describe(lunar_motion)
+Hmisc::describe(lunar_motion)
 
 anyNA(data)
 anyNA(lunar_motion)
@@ -60,6 +60,8 @@ ggtsdisplay(data_ts["2015-12-31 23:00:00/2018-12-31 23:00:00"],
             theme = theme_bw()) # 2016-2018
 
 rm(data_ts)
+
+ggplotly(autoplot(ts(data$level))) # utile per fare ispezione su valori anomali
 
 # check for stationarity in variance ----------------------------------------
 
@@ -147,7 +149,8 @@ ggplotly(pl)
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
-# definire train and test set ed integrare ciclo lunare -----------------------------------------------
+
+# definire train e test set ed integrare ciclo lunare -----------------------------------------------
 data$l_motion <- 1/lunar_motion$dists.Km.^2
 #rm(lunar_motion)
 
@@ -263,6 +266,7 @@ rm(list = c("final_model", "mod1", "mod2", "pred", "pred2"))
 acfpacf(trn_norm$level, max.lag = 100)
 xreg <- matrix(c(trn_norm$rain, trn_norm$vel_wind,
          trn_norm$dir_wind, trn_norm$l_motion), ncol = 4)
+
 col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
 colnames(xreg) <- col_names
 #(3,1,3)(1,1,3)[24]
@@ -289,9 +293,12 @@ lines(as.numeric(pred1_ar$mean), col = "red")
 pander::pander(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
 MSE(pred1_ar$mean, tst_norm$level),
 MAE(pred1_ar$mean, tst_norm$level),
+cor(pred1_ar$mean, tst_norm$level)^2,
 RMSE(mod1_ar$fitted, trn_norm$level),
 MSE(mod1_ar$fitted, trn_norm$level),
-MAE(mod1_ar$fitted, trn_norm$level)), ncol = 2, nrow = 3, dimnames = list(c("RMSE", "MSE", "MAE"),
+MAE(mod1_ar$fitted, trn_norm$level),
+cor(mod1_ar$fitted, trn_norm$level)^2), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+                                                                              "pseudo-R2"),
                                                                           c("Test", "Train"))))
 
 
@@ -321,7 +328,12 @@ datsl <- as.sealevel(data$level/100)
 plot(datsl)
 
 # tidal components to estimate
-constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'P1')
+# M2 principal lunar semi-diurnal
+# S2 "" solar
+# N2 periodo lunare ellittico
+# K2 inclinazione sole-luna
+# K1 inclinazione sole-luna 
+constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'SA', 'P1')
 
 # loop through tidal components, predict each with tidem
 preds <- sapply(constituents, function(x){
@@ -347,8 +359,8 @@ data$N2 <- preds$N2
 data$K2 <- preds$K2
 data$K1 <- preds$K1
 data$O1 <- preds$O1
+data$SA <- preds$SA
 data$P1 <- preds$P1
-
 
 
 head(data)
@@ -358,13 +370,14 @@ mod1 <- lm(level/100 ~ M2+
              N2+
              K2+K1+
              O1+
+             SA+
              P1+
              as.vector(scale(rain))+
              as.vector(scale(vel_wind))+
              as.vector(scale(dir_wind))+
              as.vector(scale(l_motion)),
            data = data)
-summary(mod1) #R2 74%
+summary(mod1) #R2 75,5%
 acfpacf(mod1$residuals) # AR2 with 1D
 trn <- data[74473:(nrow(data)-168),]
 tst <- data[(nrow(data)-167):nrow(data),]
@@ -375,31 +388,31 @@ xreg <- matrix(c(#as.vector(scale(trn$rain)),
   #as.vector(scale(trn$vel_wind)),
   #as.vector(scale(trn$dir_wind)),
   #as.vector(scale(trn$l_motion)),
-  trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$P1), ncol = 7)
+  trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$SA, trn$P1), ncol = 8)
 
 col_names <- c(#"rain",
   #"vel_wind",
   #"dir_wind",
   #"l_motion",
-  "M2", "S2", "N2","K2", "K1", "O1", "P1")
+  "M2", "S2", "N2","K2", "K1", "O1", "SA", "P1")
 colnames(xreg) <- col_names
 
-#(2,1,0) no seasonal
+#(3,0,1)(0,0,0)[24]
 mod2_ar <- Arima(trn$level/100, xreg = xreg,
-                 include.drift = F,
-                 c(2,1,0)
-                 #, list(order = c(0,0,1), period = 24)
+                 include.drift = T,
+                 c(3,1,0)
+                 , list(order = c(0,0,0), period = 24)
 )
 
 summary(mod2_ar)
-acfpacf(mod2_ar$residuals, max.lag = 72)
+acfpacf(mod2_ar$residuals)
 Box.test(mod2_ar$residuals, type="Ljung-Box")
 
 xreg_test <- matrix(c(#as.vector(scale(tst$rain)),
   #as.vector(scale(tst$vel_wind)),
   #as.vector(scale(tst$dir_wind)),
   #as.vector(scale(tst$l_motion)),
-  tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$P1), ncol = 7)
+  tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
 colnames(xreg_test) <- col_names
 
 pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
@@ -418,6 +431,8 @@ pander::pander(matrix(c(RMSE(pred2_ar$mean*100, tst$level),
        ncol = 2, nrow = 3, dimnames = list(c("RMSE", "MSE", "MAE"),
                                            c("Test", "Train"))))
 
+cor(mod2_ar$fitted*100, trn$level)^2 *100 # pseudo-R2
+cor(pred2_ar$mean*100, tst$level)^2 *100
 
 ###########################
 
