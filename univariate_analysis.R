@@ -13,6 +13,7 @@ library(MLmetrics)
 library(urca)
 library(Hmisc)
 library(plotly)
+library(TSA)
 
 
 acfpacf <- function(x, max.lag=36){
@@ -75,7 +76,9 @@ data %>%
        y = "Day std") +
   geom_smooth(method = "lm", se = FALSE) +
   annotate("label", label = "Seems to be stationary", x = 90, y = 26, size = 5) +
-  theme_bw()
+  theme_bw() -> pl
+
+ggplotly(pl)
 
 # sembrerebbe esserci un certo trend crescente ma dovrebbe essere trascurabile, assumiamo che sia stazionaria
 # in varianza
@@ -100,7 +103,9 @@ data %>%
   labs(title = "Tides data for 2010-2018 years with mean (in red)",
        x = "Datetime",
        y = "Level") +
-  theme_bw()
+  theme_bw() ->pl2
+
+ggplotly(pl2)
 
 # a prima vista sembrerebbe essere stazionaria ma possiamo testare questa impressione
 
@@ -111,7 +116,8 @@ test_stat <- ur.df(data$level,
                    selectlags = "AIC")
 summary(test_stat)
 
-rm(test_stat)
+rm(list = c("test_stat", "pl", "pl2"))
+
 # anche il test conferma essere stazionaria
 
 data %>%
@@ -133,7 +139,9 @@ data %>%
            x = 120,
            y = 0.012,
            size = 5) +
-  theme_bw()
+  theme_bw() -> pl
+
+ggplotly(pl)
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
@@ -141,15 +149,19 @@ data %>%
 data$l_motion <- lunar_motion$dists.Km.
 rm(lunar_motion)
 
-trn <- data[1:(nrow(data)-168),] # train sono 3 anni meno 1 settimana
+data[data$datetime=="2018-07-01 00:00:00",]
+
+trn <- data[74473:(nrow(data)-168),] # train sono 3 anni meno 1 settimana
 head(trn)
 tail(trn)
-tst <- data[(nrow(data)-168):nrow(data),] # test 1 settimana
+nrow(trn)
+tst <- data[(nrow(data)-167):nrow(data),] # test 1 settimana
 head(tst, 1)
 tail(tst, 1)
+nrow(tst)
 
 ggtsdisplay(trn$level,
-            main = "Venice tides 01/2010 12/2018",
+            main = "Venice tides 01/2018 12/2018",
             lag.max = 72,
             theme = theme_bw())
 
@@ -161,7 +173,6 @@ ggtsdisplay(tst$level,
 # a giudicare dai grafici ACF e PACF sembrerebbe trattarsi di un modello MA stagionale
 # poichè PACF decresce geometricamente mentre ACF presenta dei picchi stagionali
 
-library(TSA)
 p <- periodogram(data$level)
 dd <- data.frame(freq=p$freq, spec=p$spec, time=1/p$freq)
 order <- dd[order(-dd$spec),]
@@ -182,7 +193,8 @@ rain_norm <- as.vector(scale(trn$rain))
 vel_wind_norm <- as.vector(scale(trn$vel_wind))
 dir_wind_norm <- as.vector(scale(trn$dir_wind))
 l_motion_norm <- as.vector(scale(trn$l_motion))
-trn_norm <- data.frame(level = trn$level, rain = rain_norm, vel_wind = vel_wind_norm, dir_wind = dir_wind_norm,
+trn_norm <- data.frame(level = trn$level, rain = rain_norm, vel_wind = vel_wind_norm,
+                       dir_wind = dir_wind_norm,
                        l_motion = l_motion_norm)
 
 rm(list = c("trn", "rain_norm", "vel_wind_norm", "dir_wind_norm", "l_motion_norm"))
@@ -192,11 +204,11 @@ mod1 <- lm(formula = level ~ rain +
              dir_wind + 
              l_motion,
            data = trn_norm)
-summary(mod1) # R2 3.8%
+summary(mod1) # R2 4.8%
 
-plot(trn$level, type = "l")
+plot(trn_norm$level, type = "l")
 lines(mod1$fitted.values, col = "red")
-abline(h = mean(trn$level), col = "blue", lty = 2, lwd = 2)
+abline(h = mean(trn_norm$level), col = "blue", lty = 2, lwd = 2)
 
 acfpacf(mod1$residuals)
 
@@ -210,6 +222,7 @@ tst_norm <- data.frame(level = tst$level, rain = rain_norm_test, vel_wind = vel_
 
 rm(list = c("tst", "rain_norm_test", "vel_wind_norm_test", "dir_wind_norm_test", "l_motion_norm_test"))
 head(tst_norm)
+tail(tst_norm)
 nrow(tst_norm)
 
 pred <- predict.lm(mod1, newdata = tst_norm, interval = 'prediction')
@@ -224,7 +237,7 @@ abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
 
 mod2 <- lm(level ~ ., data = trn_norm)
 final_model <- step(mod2, scope = . ~ .^2, direction = 'both')
-summary(final_model) #R2 4.0%
+summary(final_model) #R2 5.8%
 
 pred <- predict.lm(final_model, newdata = tst_norm, interval = 'prediction')
 nrow(pred)
@@ -238,47 +251,63 @@ abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
 rm(list = c("data", "final_model", "mod1", "mod2", "pred"))
 ## al netto di queste prove possiamo vedere come le covariate non sembrino spiegare molto.. proviamo con modelli ARIMA
 
-# model 1 -----------------------------------------------------------------
+
+# ARIMA -------------------------------------------------------------------
+
+# model 1
 
 # i regressori se inseriti all'interno del modello ARIMA sembrerebbero non essere proprio
 # significativi
 
-acfpacf(trn_norm$level, max.lag = 800)
-
-lines(as.numeric(trn_norm$l_motion+trend$fitted.values), col = "red")
+acfpacf(trn_norm$level, max.lag = 100)
+# decom <- stl(ts(trn_norm$level, frequency = 24), s.window = 'periodic')
+# p <- seasadj(decom)
+# ggplotly(autoplot(cbind(trn_norm$level, seasonallyAdjusted = p)))
 ##TODO applicare lm ai residui di arima
 xreg <- matrix(c(trn_norm$rain, trn_norm$vel_wind,
          trn_norm$dir_wind, trn_norm$l_motion), ncol = 4)
 col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
 colnames(xreg) <- col_names
-
-mod1_ar <- Arima(trn_norm$level, #xreg = xreg,
+#(3,1,3)()[24]
+mod1_ar <- Arima(trn_norm$level, xreg = xreg,
                  include.drift = T,
-                 c(2,1,1), list(order = c(3,1,3), period = 6))
+                 c(3,1,3)
+                 , list(order = c(1,1,3), period = 24)
+                )
 summary(mod1_ar)
-acfpacf(mod1_ar$residuals, max.lag = 72)
+acfpacf(mod1_ar$residuals, max.lag = 100)
 Box.test(mod1_ar$residuals, type="Ljung-Box")
-pred <- forecast(mod1_ar, h = 168)
+
+xreg_test <- matrix(c(tst_norm$rain, tst_norm$vel_wind,
+                 tst_norm$dir_wind, tst_norm$l_motion), ncol = 4)
+colnames(xreg_test) <- col_names
+
+pred <- forecast(mod1_ar, h = 168, xreg = xreg_test)
 ggplotly(autoplot(pred))
 
-plot(trn_norm$level[1:168], type = "l")
-lines(mod1_ar$fitted[1:168], col = "red")
+plot(tst_norm$level, type = "l")
+lines(as.numeric(pred$mean), col = "red")
 
-# model auto --------------------------------------------------------------
-mod_auto <- auto.arima(ts(trn_norm$level, frequency = 6), stepwise = T)
+# model auto
+mod_auto <- auto.arima(ts(trn_norm$level, frequency = 24), xreg = xreg, stepwise = T,
+                       max.p = 5, max.q = 5, max.d = 5,
+                       max.P = 5, max.Q = 5, max.D = 5,
+                       lambda = 'auto', trace = T,
+                       nmodels = 100)
 summary(mod_auto)
-# auto arima trova modello (3,0,2)(0,1,0)[24]
+# auto arima trova modello (1,0,5)(0,1,2)[24]
+#                          (2,0,3)(1,1,2)[12]
+#                          (4,1,0)(2,0,2)[6]
+#                          (5,1,1)()[744]
 acfpacf(mod_auto$residuals, max.lag = 72)
 Box.test(mod_auto$residuals, type = "Ljung-Box")
-pred <- forecast(mod_auto, h = 168)
+pred <- forecast(mod_auto, h = 168, xreg = xreg_test)
 ggplotly(autoplot(pred))
 
-mod2 <- auto.arima(ddf$level)
-summary(mod2)
+plot(tst_norm$level, type = "l")
+lines(as.numeric(pred$mean), col = "red")
 
-
-acfpacf(mod1$residuals)
-acfpacf(mod2$residuals)
+# UCM ---------------------------------------------------------------------
 
 
 
