@@ -14,6 +14,8 @@ library(urca)
 library(Hmisc)
 library(plotly)
 library(TSA)
+library(oce)
+library(SWMPr)
 
 
 acfpacf <- function(x, max.lag=36){
@@ -145,9 +147,9 @@ ggplotly(pl)
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
-# define train and test set ed integrare ciclo lunare -----------------------------------------------
-data$l_motion <- lunar_motion$dists.Km.
-rm(lunar_motion)
+# definire train and test set ed integrare ciclo lunare -----------------------------------------------
+data$l_motion <- 1/lunar_motion$dists.Km.^2
+#rm(lunar_motion)
 
 data[data$datetime=="2018-07-01 00:00:00",]
 
@@ -204,13 +206,11 @@ mod1 <- lm(formula = level ~ rain +
              dir_wind + 
              l_motion,
            data = trn_norm)
-summary(mod1) # R2 4.8%
-
+summary(mod1) # R2 4.7%
+acfpacf(mod1$residuals)
 plot(trn_norm$level, type = "l")
 lines(mod1$fitted.values, col = "red")
 abline(h = mean(trn_norm$level), col = "blue", lty = 2, lwd = 2)
-
-acfpacf(mod1$residuals)
 
 rain_norm_test <- as.vector(scale(tst$rain))
 vel_wind_norm_test <- as.vector(scale(tst$vel_wind))
@@ -225,7 +225,7 @@ head(tst_norm)
 tail(tst_norm)
 nrow(tst_norm)
 
-pred <- predict.lm(mod1, newdata = tst_norm, interval = 'prediction')
+pred <- predict(mod1, newdata = tst_norm, interval = 'prediction')
 nrow(pred)
 head(pred)
 
@@ -237,20 +237,21 @@ abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
 
 mod2 <- lm(level ~ ., data = trn_norm)
 final_model <- step(mod2, scope = . ~ .^2, direction = 'both')
-summary(final_model) #R2 5.8%
+summary(final_model) #R2 5.7%
+acfpacf(mod2$residuals)
 
-pred <- predict.lm(final_model, newdata = tst_norm, interval = 'prediction')
-nrow(pred)
-head(pred)
+pred2 <- predict(final_model, newdata = tst_norm, interval = 'prediction')
+nrow(pred2)
+head(pred2)
 
 
 plot(tst_norm$level, type = "l")
-lines(pred[,1], col = "red")
+lines(pred2[,1], col = "red")
 abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
 
-rm(list = c("data", "final_model", "mod1", "mod2", "pred"))
-## al netto di queste prove possiamo vedere come le covariate non sembrino spiegare molto.. proviamo con modelli ARIMA
+rm(list = c("final_model", "mod1", "mod2", "pred", "pred2"))
 
+## al netto di queste prove possiamo vedere come le covariate non sembrino spiegare molto.. proviamo con modelli ARIMA
 
 # ARIMA -------------------------------------------------------------------
 
@@ -260,15 +261,11 @@ rm(list = c("data", "final_model", "mod1", "mod2", "pred"))
 # significativi
 
 acfpacf(trn_norm$level, max.lag = 100)
-# decom <- stl(ts(trn_norm$level, frequency = 24), s.window = 'periodic')
-# p <- seasadj(decom)
-# ggplotly(autoplot(cbind(trn_norm$level, seasonallyAdjusted = p)))
-##TODO applicare lm ai residui di arima
 xreg <- matrix(c(trn_norm$rain, trn_norm$vel_wind,
          trn_norm$dir_wind, trn_norm$l_motion), ncol = 4)
 col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
 colnames(xreg) <- col_names
-#(3,1,3)()[24]
+#(3,1,3)(1,1,3)[24]
 mod1_ar <- Arima(trn_norm$level, xreg = xreg,
                  include.drift = T,
                  c(3,1,3)
@@ -282,30 +279,150 @@ xreg_test <- matrix(c(tst_norm$rain, tst_norm$vel_wind,
                  tst_norm$dir_wind, tst_norm$l_motion), ncol = 4)
 colnames(xreg_test) <- col_names
 
-pred <- forecast(mod1_ar, h = 168, xreg = xreg_test)
-ggplotly(autoplot(pred))
+pred1_ar <- forecast(mod1_ar, h = 168, xreg = xreg_test)
+ggplotly(autoplot(pred1_ar))
 
 plot(tst_norm$level, type = "l")
-lines(as.numeric(pred$mean), col = "red")
+lines(as.numeric(pred1_ar$mean), col = "red")
 
-# model auto
-mod_auto <- auto.arima(ts(trn_norm$level, frequency = 24), xreg = xreg, stepwise = T,
-                       max.p = 5, max.q = 5, max.d = 5,
-                       max.P = 5, max.Q = 5, max.D = 5,
-                       lambda = 'auto', trace = T,
-                       nmodels = 100)
-summary(mod_auto)
-# auto arima trova modello (1,0,5)(0,1,2)[24]
-#                          (2,0,3)(1,1,2)[12]
-#                          (4,1,0)(2,0,2)[6]
-#                          (5,1,1)()[744]
-acfpacf(mod_auto$residuals, max.lag = 72)
-Box.test(mod_auto$residuals, type = "Ljung-Box")
-pred <- forecast(mod_auto, h = 168, xreg = xreg_test)
-ggplotly(autoplot(pred))
 
-plot(tst_norm$level, type = "l")
-lines(as.numeric(pred$mean), col = "red")
+pander::pander(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
+MSE(pred1_ar$mean, tst_norm$level),
+MAE(pred1_ar$mean, tst_norm$level),
+RMSE(mod1_ar$fitted, trn_norm$level),
+MSE(mod1_ar$fitted, trn_norm$level),
+MAE(mod1_ar$fitted, trn_norm$level)), ncol = 2, nrow = 3, dimnames = list(c("RMSE", "MSE", "MAE"),
+                                                                          c("Test", "Train"))))
+
+
+# # model auto
+# mod_auto <- auto.arima(ts(trn_norm$level, frequency = 24), xreg = xreg, stepwise = T,
+#                        max.p = 5, max.q = 5, max.d = 5,
+#                        max.P = 5, max.Q = 5, max.D = 5,
+#                        lambda = 'auto', trace = T,
+#                        nmodels = 100)
+# summary(mod_auto)
+# # auto arima trova modello (1,0,5)(0,1,2)[24]
+# #                          (2,0,3)(1,1,2)[12]
+# #                          (4,1,0)(2,0,2)[6]
+# #                          (5,1,1)()[744]
+# acfpacf(mod_auto$residuals, max.lag = 72)
+# Box.test(mod_auto$residuals, type = "Ljung-Box")
+# pred <- forecast(mod_auto, h = 168, xreg = xreg_test)
+# ggplotly(autoplot(pred))
+# 
+# plot(tst_norm$level, type = "l")
+# lines(as.numeric(pred$mean), col = "red")
+
+################# oce & SWMPr -------------
+# Direi di escludere le variabili meteo e ciclo perchè appena subentrano gli AR diventano non significative
+datsl <- as.sealevel(data$level/100)
+
+plot(datsl)
+
+# tidal components to estimate
+constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'P1')
+
+# loop through tidal components, predict each with tidem
+preds <- sapply(constituents, function(x){
+  
+  mod <- tidem(t = datsl, constituent = x)
+  pred <- predict(mod)
+  pred - mean(pred)
+  
+}) 
+
+# combine prediction, sum, add time data
+predall <- rowSums(preds) + mean(datsl[['elevation']])
+preds <- data.frame(time = datsl[['time']], preds, Estimated = predall) 
+
+head(preds)
+
+plot(data$level[1:168]/100, type = "l")
+lines(preds$Estimated[1:168], col = "red")
+
+data$M2 <- preds$M2
+data$S2 <- preds$S2
+data$N2 <- preds$N2
+data$K2 <- preds$K2
+data$K1 <- preds$K1
+data$O1 <- preds$O1
+data$P1 <- preds$P1
+
+
+
+head(data)
+
+mod1 <- lm(level/100 ~ M2+
+             S2+
+             N2+
+             K2+K1+
+             O1+
+             P1+
+             as.vector(scale(rain))+
+             as.vector(scale(vel_wind))+
+             as.vector(scale(dir_wind))+
+             as.vector(scale(l_motion)),
+           data = data)
+summary(mod1) #R2 74%
+acfpacf(mod1$residuals) # AR2 with 1D
+trn <- data[74473:(nrow(data)-168),]
+tst <- data[(nrow(data)-167):nrow(data),]
+tail(trn)
+head(tst)
+
+xreg <- matrix(c(#as.vector(scale(trn$rain)),
+  #as.vector(scale(trn$vel_wind)),
+  #as.vector(scale(trn$dir_wind)),
+  #as.vector(scale(trn$l_motion)),
+  trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$P1), ncol = 7)
+
+col_names <- c(#"rain",
+  #"vel_wind",
+  #"dir_wind",
+  #"l_motion",
+  "M2", "S2", "N2","K2", "K1", "O1", "P1")
+colnames(xreg) <- col_names
+
+#(2,1,0) no seasonal
+mod2_ar <- Arima(trn$level/100, xreg = xreg,
+                 include.drift = F,
+                 c(2,1,0)
+                 #, list(order = c(0,0,1), period = 24)
+)
+
+summary(mod2_ar)
+acfpacf(mod2_ar$residuals, max.lag = 72)
+Box.test(mod2_ar$residuals, type="Ljung-Box")
+
+xreg_test <- matrix(c(#as.vector(scale(tst$rain)),
+  #as.vector(scale(tst$vel_wind)),
+  #as.vector(scale(tst$dir_wind)),
+  #as.vector(scale(tst$l_motion)),
+  tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$P1), ncol = 7)
+colnames(xreg_test) <- col_names
+
+pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
+ggplotly(autoplot(pred2_ar))
+
+plot(tst$level, type = "l")
+lines(as.numeric(pred2_ar$mean)*100, col = "red")
+lines(as.numeric(pred1_ar$mean), col = "blue")
+
+pander::pander(matrix(c(RMSE(pred2_ar$mean*100, tst$level),
+         MSE(pred2_ar$mean*100, tst$level),
+         MAE(pred2_ar$mean*100, tst$level),
+         RMSE(mod2_ar$fitted*100, trn$level),
+         MSE(mod2_ar$fitted*100, trn$level),
+         MAE(mod2_ar$fitted*100, trn$level)),
+       ncol = 2, nrow = 3, dimnames = list(c("RMSE", "MSE", "MAE"),
+                                           c("Test", "Train"))))
+
+
+###########################
+
+
+
 
 # UCM ---------------------------------------------------------------------
 
