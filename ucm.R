@@ -66,7 +66,7 @@ data$P1 <- preds$P1
 head(data)
 data <- data[74473:nrow(data),]
 
-sinu<-FALSE
+sinu<-TRUE
 if (sinu){
   xreg <- matrix(c(data$M2, data$S2, data$N2, data$K2, data$K1, data$O1, data$SA, data$P1), ncol = 8)
 
@@ -103,12 +103,12 @@ if (sinu){
   mod1$T
   mod1$Z
   mod1$P1inf <- mod1$P1inf * 0
+  vary <- var(y, na.rm = TRUE)
   diag(mod1$P1) <- log(vary)
   mod1$a1[1] <- mean(y, na.rm = T)
   mod1$a1
   mod1$P1
   
-  vary <- var(y, na.rm = TRUE)
   pars <- numeric(5)
   vary
   pars[1] <- log(vary/100)
@@ -143,12 +143,12 @@ if (sinu){
   mod1$T
   mod1$Z
   mod1$P1inf <- mod1$P1inf * 0
+  vary <- var(y, na.rm = TRUE)
   diag(mod1$P1) <- log(vary)
   mod1$a1[1] <- mean(y, na.rm = T)
   mod1$a1
   mod1$P1
   
-  vary <- var(y, na.rm = TRUE)
   pars <- numeric(5)
   vary
   pars[1] <- log(vary/100)
@@ -206,6 +206,7 @@ pander::pandoc.table(matrix(c(RMSE(pred[1], y_true[1]),
                             ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
                                                                 c("Test", "Train"))),
                      caption = "1 step ahead prediction")
+
 
 
 pander::pandoc.table(matrix(c(RMSE(pred[1:24], y_true[1:24]),

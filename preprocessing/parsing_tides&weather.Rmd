@@ -1,0 +1,133 @@
+---
+title: "Venice is drowning (parsing tides & weather data)"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+# Overview
+
+A questo punto del progetto, come fase finale della pipeline di elaborazione iniziale procediamo ad unificare i dati delle maree riguardanti il periodo 2010-2018 ed i relativi dati meteo.
+
+```{r packages, echo=F}
+library(readr)
+library(lubridate)
+library(dplyr)
+library(xts)
+library(mice)
+library(Hmisc)
+```
+
+```{r import data, echo=T}
+tides <- read.csv("../data/output/venezia.csv")
+weather <- read.csv("../data/output/weatherData_2010-2018.csv")
+```
+
+Procediamo come detto ad estrarre i dati delle maree da inizio 2010 a fine 2018
+
+```{r limit tides data, echo=T}
+ind <- as.numeric(rownames(tides[tides$datetime=="2010-01-01 00:00:00",]))
+tides <- tides[ind:(nrow(tides)-1),]
+```
+
+# Processing
+
+Unifichiamo i dati a nostra disposizione
+
+```{r unify, echo=T}
+df <- merge(tides, weather, by.x = "datetime", by.y = "all_data", all = T)
+nrow(df)
+head(df)
+tail(df)
+```
+
+# Imputing missing data
+
+Per finire il tutto occorre definire una strategia per l'imputazione dei dati mancanti, in questo caso, avendo già unito i dataset, possiamo avvalerci anche dei dati delle maree per effettuare un'imputazione condizionata dei valori mancanti
+
+Ispezioniamo i dati:
+
+```{r inspect, echo=T}
+describe(df)
+```
+
+avvalendoci di una particolare funzione riusciamo a visualizzare i pattern presenti nei dati mancanti:
+
+```{r visualize, echo=T}
+md.pattern(df)
+```
+
+scegliamo come strategia l'imputazione multipla utilizzando regressione additiva, bootstrapping e predictive mean matching
+
+```{r chosen strategy, echo=T}
+impute_arg <- aregImpute(~ level + vel_wind + dir_wind + rain, data = df, n.impute = 15)
+completeData <- impute.transcan(impute_arg, imputation = 1, data = df,
+                                list.out = T, pr = F, check = F) 
+```
+
+ed effettuiamo infine l'imputazione
+
+```{r imputation, echo=T}
+complete_df <- as.data.frame(df$datetime)
+complete_df <- as.data.frame(cbind(complete_df, completeData$level, completeData$rain,
+                                   completeData$vel_wind, completeData$dir_wind))
+
+names(complete_df) <- c("datetime", "level", "rain", "vel_wind", "dir_wind")
+head(complete_df)
+tail(complete_df)
+```
+
+# Checking
+
+Finita l'imputazione dei valori mancanti si procede a verificare l'impatto di tale metodo di risoluzione effettuando un check sulle misure di distribuzione delle diverse variabili
+
+```{r check measures, echo=T}
+means_df <- c(mean(df$level), mean(df$rain, na.rm = T), mean(df$dir_wind, na.rm = T), mean(df$vel_wind, na.rm = T))
+means_df <- round(means_df, digits = 3)
+
+means_completedf <- c(mean(complete_df$level), mean(complete_df$rain, na.rm = T),
+                      mean(complete_df$dir_wind, na.rm = T), mean(complete_df$vel_wind, na.rm = T))
+means_completedf <- round(means_completedf, digits = 3)
+
+std_df <- c(sd(df$level), sd(df$rain, na.rm = T), sd(df$dir_wind, na.rm = T), sd(df$vel_wind, na.rm = T))
+std_df <- round(std_df, digits = 3)
+
+std_completedf <- c(sd(complete_df$level), sd(complete_df$rain, na.rm = T),
+                      sd(complete_df$dir_wind, na.rm = T), sd(complete_df$vel_wind, na.rm = T))
+std_completedf <- round(std_completedf, digits = 3)
+
+```
+
+controlliamo:
+
+```{r check table, echo=T}
+pander::pandoc.table(matrix(c(means_df, means_completedf, std_df, std_completedf), nrow = 4, ncol = 4,
+       dimnames = list(c("level", "rain", "dir_wind", "vel_wind"),
+                       c("True means", "Imputed means", "True std", "Imputed std"))), caption="Confronto tra valori di media e standard deviation per ogni variabile prima e dopo il processo di imputazione")
+```
+
+salviamo il dataset finale e concludiamo la pipeline di preparazione dei dati:
+
+```{r save, echo=T}
+#write.csv(complete_df, "../data/output/df_final2010-2018.csv", row.names = F)
+```
+

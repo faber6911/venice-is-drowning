@@ -1,0 +1,156 @@
+---
+title: "Venice is drowning (preprocess weather data)"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+```{r packages, echo=FALSE}
+library(readr)
+library(lubridate)
+```
+
+```{r import data, echo=T}
+data<- read_delim("D:/GIT/venice-is-drowning/new_data/dati_meteo/dati_meteo_2000_2019.txt", 
+                                   ";", escape_double = FALSE, trim_ws = TRUE)
+head(data)
+```
+# Overview
+
+Siamo interessati a ricondurre il file ad un formato che ci permetta di estrarre sostanzialmente 3 covariate: il volume di pioggia, la direzione del vento in gradi e la velocità del vento in Km/h.
+
+I dati nel file fanno riferimento ai periodi 01/03/2000 01:00:00 al 11/2019, giorno di richiesta dei dati all'ARPA Veneto che ci ha gentilmente fornito il dataset.
+
+Ogni misurazione, quindi, ricomincia in concomintanza con la data 01/03/2000 e l'ora 01 per questo motivo identifichiamo questi punti nel dataset.
+
+```{r points, echo=T}
+print(which(data$DATA == "01/03/2000" & data$ORA == "01"))
+```
+
+# Processing
+
+A questo punto possiamo procedere ad applicare dei tagli lungo i punti identificati
+
+```{r datasets, echo=T}
+data <- data[163255:nrow(data),]
+dir_wind <- data[1:163254,]
+rain <- data[163255:333835,]
+vel_wind <- data[333836:nrow(data),]
+```
+
+Realizziamo adesso la colonna datetime per ogni dataset e ripuliamo dai dati non necessari:
+
+```{r manipulation, echo=T}
+dir_wind$datetime <- as.Date(dir_wind$DATA, format = "%d/%m/%Y") + hours(as.numeric(dir_wind$ORA))
+rain$datetime <- as.Date(rain$DATA, format = "%d/%m/%Y") + hours(as.numeric(rain$ORA))
+vel_wind$datetime <- as.Date(vel_wind$DATA, format = "%d/%m/%Y") + hours(as.numeric(vel_wind$ORA))
+
+dir_wind$STAZIONE <- NULL
+dir_wind$SENSORE <- NULL
+dir_wind$DATA <- NULL
+dir_wind$ORA <- NULL
+
+
+vel_wind$STAZIONE <- NULL
+vel_wind$SENSORE <- NULL
+vel_wind$DATA <- NULL
+vel_wind$ORA <- NULL
+
+
+rain$STAZIONE <- NULL
+rain$SENSORE <- NULL
+rain$DATA <- NULL
+rain$ORA <- NULL
+```
+
+e sistemiamo il nome delle colonne:
+
+```{r manipulation2, echo=T}
+colnames(dir_wind) <- c("dir_wind", "datetime")
+colnames(vel_wind) <- c("vel_wind", "datetime")
+colnames(rain) <- c("rain", "datetime")
+```
+
+Convertiamo in dataframe e procediamo a rendere character le date per evitare problemi durante la manipolazione:
+
+```{r rearrange, echo=T}
+dir_wind <- as.data.frame(dir_wind)
+vel_wind <- as.data.frame(vel_wind)
+rain <- as.data.frame(rain)
+
+dir_wind$datetime <- as.character(dir_wind$datetime)
+vel_wind$datetime <- as.character(vel_wind$datetime)
+rain$datetime <- as.character(rain$datetime)
+```
+
+Verifichiamo che siano presenti tutte le istanze:
+
+```{r check, echo=T}
+nrow(rain) == length(seq(from = as.POSIXct(rain$datetime[1]), to = as.POSIXct(rain$datetime[nrow(rain)]), by = "hour"))
+```
+
+Dalla verifica risulta che non siano presenti tutte le osservazioni. Ispezionando più a fondo è possibile osservare come manchino alcuni mesi del 2000 e alcune ore o intere giornate sparse nei 19 anni di dati.
+
+# Parsing
+
+A questo punto è necessario per noi ricavare una sequenza di date completa con cui poter verificare effettivante quando e dove sono presenti nei buchi nei dati poichè queste date non sono compilate con NaN values ma al contrario sono proprio assenti nel dataset iniziale:
+
+```{r check2, echo=T}
+all_data = seq(from = as.POSIXlt(rain$datetime[1], tz = "UTC"), to = as.POSIXct("2019-11-13 00:00:00", tz = "UTC"), by = "hour")
+all_data <- strftime(all_data, tz = "UTC")
+head(as.data.frame(all_data))
+tail(as.data.frame(all_data))
+```
+
+In questo modo abbiano raggiunto il nostro obiettivo e possiamo procedere ad unificare il dataset:
+
+```{r unifing, echo=T}
+yy <- as.data.frame(all_data)
+yy <- merge(yy, rain, by.x = "all_data", by.y = "datetime", all = TRUE)
+yy <- merge(yy, vel_wind, by.x = "all_data", by.y = "datetime", all = TRUE)
+yy <- merge(yy, dir_wind, by.x = "all_data", by.y = "datetime", all = TRUE)
+head(yy)
+```
+
+Adesso possiamo procedere a filtrare i nostri dati di interesse, ovvero il periodo dal 01/01/2010 00:00:00 fino al 31/12/2018 23:00:00
+
+```{r filtering, echo=T}
+yy <- yy[1:165119, ]
+yy <- yy[86232:nrow(yy),]
+head(yy)
+tail(yy)
+```
+
+A questo punto possiamo verificare quali e quanti siano i valori mancanti per le variabili meteorologiche:
+
+```{r check3, echo=T}
+sum(is.na(yy$rain)) # 500
+sum(is.na(yy$dir_wind)) # 397
+sum(is.na(yy$vel_wind)) # 215
+```
+
+Procediamo infine a salvare il file per cui procederemo in seguito a trattare il problema dei dati mancanti:
+
+```{r}
+# write.csv(yy, "../data/output/weatherData_2010-2018.csv", col.names = T, row.names = F)
+```
+
