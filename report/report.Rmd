@@ -36,15 +36,15 @@ L'obiettivo principale del progetto proposto è sostanzialmente quello di analiz
 
 A questo scopo i modelli realizzati sono tre, due lineari ed uno di machine learning:
 
-* un modello ARIMA;
-* un modello UCM;
-* un modello LSTM.
+* un modello ARIMA (AutoRegressive Integrated Moving Average);
+* un modello UCM (Unobserved Component Models);
+* un modello LSTM (Long Short-Term Memory).
 
 # Datasets
 
 I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019.
 
-Il dataset dei livelli di marea è stato "assemblato" dai dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche è stato fornito, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili in alcuni script/html realizzati in questo ordine:
+Il dataset dei livelli di marea è stato composto dai singoli dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche sono stati forniti, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili nei seguenti script/html realizzati con questo ordine:
 
 * **parsing_tides_data** è lo script utilizzato per svolgere l'operazione di assemblaggio del dataset delle maree completo, importando ed unificando tutti i dataset annuali disponibili;
 * **inspection** contiene una serie di ispezioni preliminari rispetto i dati citati;
@@ -60,7 +60,7 @@ Durante la fase di processing dei dati e prima di procedere all'effettiva realiz
 <center>
 <figure>
 ![fig 1: Visualizzazione della serie storica con relativi plot di autocorrelazione](imgs/data_plot.jpg)
-<figcaption>fig 1: Visualizzazione della serie storica con relativi plot di autocorrelazione</figcaption>
+<figcaption>Figure 1: Visualizzazione della serie storica con relativi plot di autocorrelazione</figcaption>
 </figure>
 </center>
 <br>
@@ -69,7 +69,7 @@ In fig. 1 è possibile osservare la serie storica completa, rappresentata insiem
 <center>
 <figure>
 ![distribuzione](imgs/distribution.jpg)
-<figcaption>fig 2: Distribuzione dei valori della serie storica</figcaption>
+<figcaption>Figure 2: Distribuzione dei valori della serie storica</figcaption>
 </figure>
 </center>
 <br>
@@ -78,16 +78,28 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 <center>
 <figure>
 ![fig 3: Output augmented Dickey-Fuller test](imgs/adf_test.PNG)
-<figcaption>fig 3: output di test ADF</figcaption>
+<figcaption>Figure 3: output test ADF</figcaption>
 </figure>
 </center>
 <br>
-Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stationarietà in varianza
+Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto rispetto al tempo, ciò ad indicare che la variabilità del fenomeno delle maree non tende ad aumentare nel tempo, o per lo meno non in modo significativo.
 
 <center>
 <figure>
 ![fig 4: variance stationary](imgs/var_stationary.jpg)
-<figcaption>fig 4: verifica stazionarietà</figcaption>
+<figcaption>Figure 4: Verifica stazionarietà in varianza</figcaption>
 </figure>
 </center>
 <br>
+
+# Modelli
+
+Introduzione alla modellistica integrata nel progetto, alle misure di valutazione adottate e ai dati utilizzati.
+
+## Modelli lineari
+
+ARIMA ed UCM
+
+## Machine Learning
+
+Inserire qui procedimento svolto LSTM
