@@ -17,7 +17,7 @@ library(TSA)
 library(oce)
 library(SWMPr)
 library(KFAS)
-
+library(patchwork)
 
 acfpacf <- function(x, max.lag=36){
   require(forecast)
@@ -45,9 +45,26 @@ Hmisc::describe(lunar_motion)
 anyNA(data)
 anyNA(lunar_motion)
 
+p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
+  geom_line() +
+  theme_bw() +
+  labs(x = "nobs", y = "level", title = "Linear models train set")
+
+p2 <- ggplot(aes(y = level, x = seq(1, nrow(data)-168, 1)), data = data[1:(nrow(data)-168),]) +
+  geom_line() +
+  theme_bw() +
+  labs(x = "nobs", y = "", title = "Machine learning train set")
+p3 <- ggplot(aes(y = level, x = seq(1, 168, 1)), data = data[(nrow(data)-167):nrow(data),]) + 
+  geom_line() + theme_bw() + labs(x = "nobs", y = "level", title = "Common test set")
+
+jpeg("../report/imgs/train_test.jpg", width = 1200, height = 500, quality = 100)
+(p1 | p2) / p3
+dev.off()
+
 jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)
 ggtsdisplay(data$level, lag.max = 72, main = "Venice tides with autocorrelation plots", theme = theme_bw())
 dev.off()
+
 # definire train e test set ed integrare ciclo lunare -----------------------------------------------
 data$l_motion <- 1/lunar_motion$dists.Km.^2
 #rm(lunar_motion)

@@ -30,7 +30,7 @@ text-align:justify
 }
 </style>
 
-# Overview
+# Premesse
 
 L'obiettivo principale del progetto proposto è sostanzialmente quello di analizzare i dati delle rilevazioni di marea per quanto riguarda l'area della laguna di Venezia con lo scopo di realizzare e testare dei modelli predittivi, valutati su un orizzonte temporale che va da un'ora fino ad una settimana di previsione.
 
@@ -82,8 +82,7 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 </figure>
 </center>
 <br>
-Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto rispetto al tempo, ciò ad indicare che la variabilità del fenomeno delle maree non tende ad aumentare nel tempo, o per lo meno non in modo significativo.
-
+Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto.
 <center>
 <figure>
 ![fig 4: variance stationary](imgs/var_stationary.jpg)
@@ -94,11 +93,27 @@ Successivamente alla verifica della stazionarità in media si è proceduto a ver
 
 # Modelli
 
-Introduzione alla modellistica integrata nel progetto, alle misure di valutazione adottate e ai dati utilizzati.
+Come anticipato, i modelli realizzati vertono su due ambiti, uno più puramente statistico di modelli lineari ovvero ARIMA ed UCM e l'altro di machine learning, attraverso la definizione di un modello LSTM. Di seguito verranno presentati i preparativi e le implementazioni dei modelli ed infine verrà proposta una sezione di risultati in cui sarà possibile effettuare un rapido confronto tra le prestazioni dei modelli su un test set definito a priori. A questo proposito vale la pena di sottolineare i dati utilizzati per entrambi gli ambiti:
+
+* per i modelli lineari il training set consiste negli ultimi sei mesi del 2018, a partire da Luglio fino a Dicembre 2018;
+* per il modello machine learning, data la sua capacità di gestire moli di dati decisamente superiori a parità di tempo di computazione, come training set è stato utilizzato tutto il dataset a partire da Gennaio 2010 fino a Dicembre 2018.
+
+Il test set, estratto a priori, consiste nell'ultima settimana di Dicembre 2018, ovvero dal 24/12/2018 23:00:00 al 31/12/2018 alle 23:00:00.
+
+<center>
+<figure>
+![Figure 5](imgs/train_test.jpg)
+<figcaption>Figure 5: Rappresentazione dei dati di train e di test</figcaption>
+</figure>
+</center>
 
 ## Modelli lineari
 
-ARIMA ed UCM
+Entrambi i modelli lineari realizzati, come detto, utilizzano come training set i dati delle maree a partire dal 01/07/2018 00:00:00 fino al 24/12/2018 23:00:00. Questa scelta è stata guidata da esigenze di ottimizzazione dei tempi di *fitting* dei modelli poichè, selezionando più dati, si è riscontrato un importante dilatamento di questi. Sia ARIMA che UCM sono stati scritti in R, utilizzando a questo scopo i pacchetti *forecast* e *KFAS*.
+
+### ARIMA
+
+### UCM
 
 ## Machine Learning
 
