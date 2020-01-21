@@ -16,3 +16,7 @@ parsing_data_files_cache
 .Rprofile
 inspection_cache
 inspection_files
+__py*
+__py*/
+wandb/*
+wandb
