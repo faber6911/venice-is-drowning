@@ -31,6 +31,7 @@ acfpacf <- function(x, max.lag=36){
 
 data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
 lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
+dummy_rain <- read.csv("../data/output/df_rain_dummy.csv")
 
 head(data)
 tail(data)

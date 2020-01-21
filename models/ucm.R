@@ -29,8 +29,8 @@ acfpacf <- function(x, max.lag=36){
 
 # import data -------------------------------------------------------------
 
-data <- read.csv("data/output/df_final2010-2018.csv", header = T)
-lunar_motion <- read.csv("moon_distance/moon_distances.csv", header = T)
+data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
+lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 data$l_motion <- 1/lunar_motion$dists.Km.^2
 datsl <- as.sealevel(data$level/100)
 constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'SA', 'P1')

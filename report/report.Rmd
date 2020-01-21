@@ -30,18 +30,19 @@ text-align:justify
 }
 </style>
 
-# Premesse
+# Abstract
 
-L'obiettivo principale del progetto proposto è sostanzialmente quello di analizzare i dati delle rilevazioni di marea per quanto riguarda l'area della laguna di Venezia con lo scopo di realizzare e testare dei modelli predittivi, valutati su un orizzonte temporale che va da un'ora fino ad una settimana di previsione.
+The main objective of the proposed project is basically to analyze the data of the tide detections regarding the area of the Venice lagoon with the aim of creating and testing predictive models, assessed on a time horizon ranging from one hour up to a week of forecast.
 
-A questo scopo i modelli realizzati sono tre, due lineari ed uno di machine learning:
+For this purpose, the models created are three, two linear and one of machine learning:
 
-* un modello ARIMA (AutoRegressive Integrated Moving Average);
-* un modello UCM (Unobserved Component Models);
-* un modello LSTM (Long Short-Term Memory).
+* an ARIMA (AutoRegressive Integrated Moving Average) model;
+* a UCM (Unobserved Component Models) model;
+* an LSTM (Long Short-Term Memory) model.
 
 # Datasets
 
+The datasets used for the project pipeline are two: the first dataset contains the tides level measurements, obtained through the use of a sensor, in the Venice lagoon 
 I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019.
 
 Il dataset dei livelli di marea è stato composto dai singoli dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche sono stati forniti, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili nei seguenti script/html realizzati con questo ordine:
