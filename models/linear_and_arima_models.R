@@ -31,7 +31,14 @@ acfpacf <- function(x, max.lag=36){
 
 data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
 lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
-dummy_rain <- read.csv("../data/output/df_rain_dummy.csv")
+
+# lunar_plot <- ggplot(aes(y = dists.Km., x = as.POSIXct(datetime, tz = "UTC")), data = lunar_motion) +
+#   geom_line() + theme_bw()+ labs(x = "Time", y = "Dist Km", title = "Lunar motion from 01-2010 to 12-2018")
+# pl <- ggplotly(lunar_plot, width = 600, height = 300)
+# htmlwidgets::saveWidget(as_widget(pl), "test.html", )
+
+
+dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
 
 head(data)
 tail(data)
@@ -46,28 +53,29 @@ Hmisc::describe(lunar_motion)
 anyNA(data)
 anyNA(lunar_motion)
 
-p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
-  geom_line() +
-  theme_bw() +
-  labs(x = "nobs", y = "level", title = "Linear models train set")
-
-p2 <- ggplot(aes(y = level, x = seq(1, nrow(data)-168, 1)), data = data[1:(nrow(data)-168),]) +
-  geom_line() +
-  theme_bw() +
-  labs(x = "nobs", y = "", title = "Machine learning train set")
-p3 <- ggplot(aes(y = level, x = seq(1, 168, 1)), data = data[(nrow(data)-167):nrow(data),]) + 
-  geom_line() + theme_bw() + labs(x = "nobs", y = "level", title = "Common test set")
-
-jpeg("../report/imgs/train_test.jpg", width = 1200, height = 500, quality = 100)
-(p1 | p2) / p3
-dev.off()
-
-jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)
-ggtsdisplay(data$level, lag.max = 72, main = "Venice tides with autocorrelation plots", theme = theme_bw())
-dev.off()
+# p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
+#   geom_line() +
+#   theme_bw() +
+#   labs(x = "nobs", y = "level", title = "Linear models train set")
+# 
+# p2 <- ggplot(aes(y = level, x = seq(1, nrow(data)-168, 1)), data = data[1:(nrow(data)-168),]) +
+#   geom_line() +
+#   theme_bw() +
+#   labs(x = "nobs", y = "", title = "Machine learning train set")
+# p3 <- ggplot(aes(y = level, x = seq(1, 168, 1)), data = data[(nrow(data)-167):nrow(data),]) + 
+#   geom_line() + theme_bw() + labs(x = "nobs", y = "level", title = "Common test set")
+# 
+# jpeg("../report/imgs/train_test.jpg", width = 1200, height = 500, quality = 100)
+# (p1 | p2) / p3
+# dev.off()
+# 
+# jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)
+# ggtsdisplay(data$level, lag.max = 72, main = "Venice tides with autocorrelation plots", theme = theme_bw())
+# dev.off()
 
 # definire train e test set ed integrare ciclo lunare -----------------------------------------------
 data$l_motion <- 1/lunar_motion$dists.Km.^2
+data$dummy_rain <- dummy_rain$X0
 #rm(lunar_motion)
 
 data[data$datetime=="2018-07-01 00:00:00",]
@@ -282,7 +290,7 @@ xreg <- matrix(c(trn_norm$rain, trn_norm$vel_wind,
 col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
 colnames(xreg) <- col_names
 #(3,1,3)(1,1,3)[24]
-mod1_ar <- Arima(trn_norm$level+0.01, xreg = xreg,
+mod1_ar <- Arima(trn_norm$level, xreg = xreg,
                  include.drift = T,
                  c(3,1,3)
                  , list(order = c(1,1,3), period = 24))
@@ -341,7 +349,13 @@ pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
 ################# oce & SWMPr -------------
 # Direi di escludere le variabili meteo e ciclo perchè appena subentrano gli AR diventano non significative
 
-data <- read.csv("data/output/df_final2010-2018.csv", header = T)
+data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
+lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
+dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
+data$l_motion <- 1/lunar_motion$dists.Km.^2
+data$dummy_rain <- dummy_rain$dummy_rain
+data$dummy_wind <- dummy_rain$vel_wind_dummy
+#pad <- rep(0, 168)
 datsl <- as.sealevel(data$level/100)
 
 plot(datsl)
@@ -383,16 +397,18 @@ data$P1 <- preds$P1
 
 
 head(data)
-
-mod1 <- lm(level/100 ~ M2+
-             S2+
-             N2+
-             K2+K1+
-             O1+
-             SA+
-             P1+
+mod1 <- lm(level ~ 
+             # M2+
+             # S2+
+             # N2+
+             # K2+K1+
+             # O1+
+             # SA+
+             # P1+
+             as.factor(dummy_rain)*
              as.vector(scale(rain))+
-             as.vector(scale(vel_wind))+
+             as.factor(dummy_wind)*
+            as.vector(scale(vel_wind))*
              as.vector(scale(dir_wind))+
              as.vector(scale(l_motion)),
            data = data)
@@ -405,11 +421,12 @@ head(tst)
 
 xreg <- matrix(c(trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$SA, trn$P1), ncol = 8)
 
-col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA", "P1")
+col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA"
+               , "P1")
 colnames(xreg) <- col_names
 
-#(3,0,1)(0,0,0)[24]
-mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg,
+#(3,1,0)(0,0,0)[24]
+mod2_ar <- Arima(trn$level/100, xreg = xreg,
                  include.drift = T,
                  c(3,1,0)
                  , list(order = c(0,0,0), period = 24)
@@ -419,6 +436,8 @@ summary(mod2_ar)
 acfpacf(mod2_ar$residuals)
 Box.test(mod2_ar$residuals, type="Ljung-Box")
 
+#summary(lm(mod2_ar$residuals*100~trn$dummy_rain*trn$rain*trn$dummy_wind*trn$dir_wind))
+ggplotly(autoplot(ts(mod2_ar$residuals)))
 xreg_test <- matrix(c(tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
 colnames(xreg_test) <- col_names
 
