@@ -1,0 +1,93 @@
+---
+title: "Venice is drowning - final report"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+<style>
+body{
+text-align:justify
+}
+</style>
+
+# Overview
+
+L'obiettivo principale del progetto proposto è sostanzialmente quello di analizzare i dati delle rilevazioni di marea per quanto riguarda l'area della laguna di Venezia con lo scopo di realizzare e testare dei modelli predittivi, valutati su un orizzonte temporale che va da un'ora fino ad una settimana di previsione.
+
+A questo scopo i modelli realizzati sono tre, due lineari ed uno di machine learning:
+
+* un modello ARIMA;
+* un modello UCM;
+* un modello LSTM.
+
+# Datasets
+
+I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019.
+
+Il dataset dei livelli di marea è stato "assemblato" dai dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche è stato fornito, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili in alcuni script/html realizzati in questo ordine:
+
+* **parsing_tides_data** è lo script utilizzato per svolgere l'operazione di assemblaggio del dataset delle maree completo, importando ed unificando tutti i dataset annuali disponibili;
+* **inspection** contiene una serie di ispezioni preliminari rispetto i dati citati;
+* **preprocess_weather_data_2000_2019** contiene invece le operazioni di processing riguardanti i dati meteorologici;
+* **parsing_tides_weather** riassume infine le operazioni svolte per risolvere il problema dei dati mancanti per quanto riguarda il dataset dei dati meteorologici ed il finale *merge* dei due file.
+
+Come scelta progettuale, si è deciso in fase di processing dei dati di limitare l'utilizzo di questi al periodo tra Gennaio 2010 e Dicembre 2018.
+
+# Panoramica
+
+Durante la fase di processing dei dati e prima di procedere all'effettiva realizzazione dei modelli di previsione, sono state prodotte una serie di visualizzazioni con lo scopo di ispezionare a fondo alcuni aspetti riguardanti la serie storica. 
+
+<center>
+<figure>
+![fig 1: Visualizzazione della serie storica con relativi plot di autocorrelazione](imgs/data_plot.jpg)
+<figcaption>fig 1: Visualizzazione della serie storica con relativi plot di autocorrelazione</figcaption>
+</figure>
+</center>
+<br>
+In fig. 1 è possibile osservare la serie storica completa, rappresentata insieme ai plot di autocorrelazione ed autocorrelazione parziale, mentre in fig. 2 si può verificare come il fenomeno delle maree sembrerebbe distribuirsi seguendo una distribuzione normale. In questo caso, infatti, i concetti di stazionarietà debole e forte si equivalgono.
+
+<center>
+<figure>
+![distribuzione](imgs/distribution.jpg)
+<figcaption>fig 2: Distribuzione dei valori della serie storica</figcaption>
+</figure>
+</center>
+<br>
+Durante il lavoro di prima ispezione dei dati storici una delle verifiche effettuate ha riguardato la stazionarietà in media e quella in varianza: per quanto riguarda la prima osservando la serie in fig. 1 questa sembrerebbe effettivamente risultare stazionaria in media, per questa ragione per confermare l'ipotesi di stazionarietà in fig. 3 è riportato l'output di un test Augmented Dickey-Fuller che, come si vede, conferma a tutti gli effetti la stazionarietà in media del fenomeno mareale.
+
+<center>
+<figure>
+![fig 3: Output augmented Dickey-Fuller test](imgs/adf_test.PNG)
+<figcaption>fig 3: output di test ADF</figcaption>
+</figure>
+</center>
+<br>
+Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stationarietà in varianza
+
+<center>
+<figure>
+![fig 4: variance stationary](imgs/var_stationary.jpg)
+<figcaption>fig 4: verifica stazionarietà</figcaption>
+</figure>
+</center>
+<br>

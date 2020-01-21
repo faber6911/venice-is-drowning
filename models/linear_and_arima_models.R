@@ -29,8 +29,8 @@ acfpacf <- function(x, max.lag=36){
 
 # import data --------------------------------------------------------------
 
-data <- read.csv("data/output/df_final2010-2018.csv", header = T)
-lunar_motion <- read.csv("moon_distance/moon_distances.csv", header = T)
+data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
+lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 
 head(data)
 tail(data)
@@ -45,6 +45,9 @@ Hmisc::describe(lunar_motion)
 anyNA(data)
 anyNA(lunar_motion)
 
+jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)
+ggtsdisplay(data$level, lag.max = 72, main = "Venice tides with autocorrelation plots", theme = theme_bw())
+dev.off()
 # definire train e test set ed integrare ciclo lunare -----------------------------------------------
 data$l_motion <- 1/lunar_motion$dists.Km.^2
 #rm(lunar_motion)
@@ -93,7 +96,7 @@ ggplotly(autoplot(ts(data$level))) # utile per fare ispezione su valori anomali
 # check for stationarity in variance ----------------------------------------
 
 # convertiamo in df solo per verificare stazionarietà in varianza
-
+jpeg(filename = "../report/imgs/var_stationary.jpg", width = 600, height = 500, quality = 100)
 data %>%
   add_column(date = date(data$datetime)) %>%
   group_by(date) %>% 
@@ -107,16 +110,17 @@ data %>%
        y = "Day std") +
   geom_smooth(method = "lm", se = FALSE) +
   annotate("label", label = "Seems to be stationary", x = 90, y = 26, size = 5) +
-  theme_bw() -> pl
+  theme_bw()
+dev.off()
 
-ggplotly(pl)
+#ggplotly(pl)
 
 # sembrerebbe esserci un certo trend crescente ma dovrebbe essere trascurabile, assumiamo che sia stazionaria
 # in varianza
 
 
 # verifichiamo la stazionarietà in media
-
+jpeg("../report/imgs/mean_stationary.jpg", width = 600, height = 500, quality = 100)
 data %>% 
   ggplot(aes(y = level, x = seq(1:nrow(data)))) +
   geom_line() +
@@ -128,15 +132,15 @@ data %>%
            label = paste0("Mean = ",
                           round(mean(data$level), 2)),
            y = 150,
-           x = 3500,#as.POSIXct("2010-01-01 00:00:00"),
+           x = 3900,#as.POSIXct("2010-01-01 00:00:00"),
            size = 5,
            colour = "black") +
   labs(title = "Tides data for 2010-2018 years with mean (in red)",
        x = "Datetime",
        y = "Level") +
-  theme_bw() ->pl2
-
-ggplotly(pl2)
+  theme_bw()
+dev.off()
+#ggplotly(pl2)
 
 # a prima vista sembrerebbe essere stazionaria ma possiamo testare questa impressione
 
@@ -151,6 +155,7 @@ rm(list = c("test_stat", "pl", "pl2"))
 
 # anche il test conferma essere stazionaria
 
+jpeg("../report/imgs/dsitribution.jpg", width = 600, height = 500, quality = 100)
 data %>%
   ggplot(aes(x = level, y = ..density..)) +
   geom_histogram(colour = "black",
@@ -167,12 +172,13 @@ data %>%
        title = "Density plot with histogram for tides level distribution") +
   annotate("label",
            label = "Seems to be normally distributed",
-           x = 120,
+           x = 110,
            y = 0.012,
            size = 5) +
-  theme_bw() -> pl
+  theme_bw()
+dev.off()
 
-ggplotly(pl)
+#ggplotly(pl)
 
 # il fenomeno sembrerebbe distribuirsi normalmente
 
