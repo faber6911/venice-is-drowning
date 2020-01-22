@@ -18,6 +18,7 @@ library(oce)
 library(SWMPr)
 library(KFAS)
 library(patchwork)
+library(zoo)
 
 acfpacf <- function(x, max.lag=36){
   require(forecast)
@@ -351,10 +352,10 @@ pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
 
 data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
 lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
-dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
+#dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
 data$l_motion <- 1/lunar_motion$dists.Km.^2
-data$dummy_rain <- dummy_rain$dummy_rain
-data$dummy_wind <- dummy_rain$vel_wind_dummy
+#data$dummy_rain <- dummy_rain$dummy_rain
+#data$dummy_wind <- dummy_rain$vel_wind_dummy
 #pad <- rep(0, 168)
 datsl <- as.sealevel(data$level/100)
 
@@ -420,6 +421,7 @@ tail(trn)
 head(tst)
 
 xreg <- matrix(c(trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$SA, trn$P1), ncol = 8)
+plot(zoo(xreg))
 
 col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA"
                , "P1")
@@ -440,6 +442,19 @@ Box.test(mod2_ar$residuals, type="Ljung-Box")
 ggplotly(autoplot(ts(mod2_ar$residuals)))
 xreg_test <- matrix(c(tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
 colnames(xreg_test) <- col_names
+
+# p <- plot_ly(orientation = "h", width = 700, height = 350, as.data.frame(xreg_test), x = ~as.POSIXct(tst$datetime, tz = "UTC"), y = ~M2,
+#              name = 'M2', type = 'scatter', mode = 'lines') %>%
+#   add_trace(y = ~S2, name = 'S2', mode = 'lines') %>%
+#   add_trace(y = ~N2, name = 'N2', mode = 'lines') %>%
+#   add_trace(y = ~K2, name = "K2", mode = 'lines') %>%
+#   add_trace(y = ~K1, name = "K1", mode = 'lines') %>%
+#   add_trace(y = ~O1, name = "O1", mode = 'lines') %>%
+#   add_trace(y = ~SA, name = "SA", mode = 'lines') %>%
+#   add_trace(y = ~P1, name = "P1", mode = 'lines') %>%
+#   layout(yaxis = list(title = "Amplitude"), xaxis = list(title = "Datetime"))
+# p
+# htmlwidgets::saveWidget(as_widget(p), "components.html", )
 
 pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
 ggplotly(autoplot(pred2_ar))

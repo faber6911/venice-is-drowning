@@ -112,7 +112,7 @@ The test set, previously extracted, refer to the last week of December 2018, i.e
 <center>
 <figure>
 ![Figure 5](imgs/train_test.jpg)
-<figcaption>Figure 5: Rappresentazione dei dati di train e di test</figcaption>
+<figcaption>Figure 5: Train and test data representation</figcaption>
 </figure>
 </center>
 <br>
@@ -122,22 +122,34 @@ With reference to the linear models, two strategies are implemented: the former 
 
 Regarding the first strategy, after processing the meteorological data as previously mentioned, using the API *PyEphem*, an astronomy library that provides basic astronomical computations for the Python programming language. Given a date and location on the Earth’s surface, it can compute the positions of the Sun and Moon, of the planets and their moons, and of any asteroids, comets, or earth satellites whose orbital elements the user can provide. In order to track the lunar motion all we have to do is to select the period of interest and the coordinates representing Venice.
 
-
+<div align="center">
+<figure>
 ```{r out.width="60%", tidy=TRUE}
 shiny::includeHTML("imgs/test.html")
 ```
+<figcaption>Figure 6: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
+</figure>
+</div>
+<br>
+The second strategy instead, as anticipated, concerns the principal periodic components extractable from a time series about sea levels in order to be used as regressors for the tides level time serie. The *oce* package provide a function called *tidem* able to fit a model in terms of sine and cosine components at the indicated tidal frequencies, with the amplitude and phase being calculated from the resultant coefficients on the sine and cosine terms. *Tidem* provides the possibility to extract till 69 components but we focused on 8 of them, in particular:
 
+* M2, main lunar semi-diurnal with a period of ~12 hours;
+* S2, main solar semi-diurnal (~12 hours);
+* N2, lunar-elliptic semi-diurnal (~13 hours);
+* K2, lunar-solar semi-diurnal (~12 hours);
+* K1, lunar-solar diurnal (~24 hours);
+* O1, main lunar diurnal (~26 hours);
+* SA, solar annual (~24*365 hours);
+* P1, main solar diurnal (24 hours).
 
-The second strategy instead, as anticipated, concerns the principal periodic components extractable from a time series about sea levels in order to be used as regressors for the tides level time serie. The *oce* package provide a function called *tidem* able to fit a model in terms of sine and cosine components at the indicated tidal frequencies, with the amplitude and phase being calculated from the resultant coefficients on the sine and cosine terms. *Tidem* provides the possibility to extract until 69 components but we focused on 8 of them, in particular:
-
-* M2 
-* S2
-* N2
-* K2
-* K1
-* O1
-* SA
-* P1
+<div align="center">
+<figure>
+```{r, out.width="60%"}
+shiny::includeHTML("components.html")
+```
+<figcaption>Figure 7: Interactive filtering plot for the extracted components</figcaption>
+</figure>
+</div>
 
 ## ARIMA
 
