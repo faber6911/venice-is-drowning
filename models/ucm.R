@@ -62,9 +62,9 @@ data$O1 <- preds$O1
 data$SA <- preds$SA
 data$P1 <- preds$P1
 
-
 head(data)
-data <- data[74473:nrow(data),]
+
+data <- data[74305:nrow(data),]
 
 sinu<-TRUE
 if (sinu){

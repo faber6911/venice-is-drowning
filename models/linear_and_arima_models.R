@@ -39,20 +39,20 @@ lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 # htmlwidgets::saveWidget(as_widget(pl), "test.html", )
 
 
-dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
-
-head(data)
-tail(data)
-str(data)
-Hmisc::describe(data)
-
-head(lunar_motion)
-tail(lunar_motion)
-str(lunar_motion)
-Hmisc::describe(lunar_motion)
-
-anyNA(data)
-anyNA(lunar_motion)
+# dummy_rain <- read.csv("../data/df_final_processed.csv", header = T)
+# 
+# head(data)
+# tail(data)
+# str(data)
+# Hmisc::describe(data)
+# 
+# head(lunar_motion)
+# tail(lunar_motion)
+# str(lunar_motion)
+# Hmisc::describe(lunar_motion)
+# 
+# anyNA(data)
+# anyNA(lunar_motion)
 
 # p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
 #   geom_line() +
@@ -76,29 +76,29 @@ anyNA(lunar_motion)
 
 # definire train e test set ed integrare ciclo lunare -----------------------------------------------
 data$l_motion <- 1/lunar_motion$dists.Km.^2
-data$dummy_rain <- dummy_rain$X0
+#data$dummy_rain <- dummy_rain$X0
 #rm(lunar_motion)
 
-data[data$datetime=="2018-07-01 00:00:00",]
-data <- data[74473:nrow(data),]
-head(data)
+data[data$datetime=="2018-06-24 00:00:00",]
+#data <- data[74305:nrow(data),]
+#head(data)
 
-trn <- data[1:(nrow(data)-168),] # train sono 6 mesi meno 1 settimana
+trn <- data[74305:(nrow(data)-336),] # train sono 6 mesi meno 1 settimana
 head(trn)
 tail(trn)
 nrow(trn)
-tst <- data[(nrow(data)-167):nrow(data),] # test 1 settimana
+tst <- data[(nrow(data)-335):nrow(data),] # test 1 settimana
 head(tst, 1)
 tail(tst, 1)
 nrow(tst)
 
 ggtsdisplay(trn$level,
-            main = "Venice tides 07/2018 12/2018",
+            main = "Venice tides 06/2018 12/2018",
             lag.max = 72,
             theme = theme_bw())
 
 ggtsdisplay(tst$level,
-            main = "Venice tides last week 2018",
+            main = "Venice tides last two weeks 2018",
             lag.max = 72,
             theme = theme_bw())
 
@@ -106,12 +106,12 @@ ggtsdisplay(tst$level,
 # poichè PACF decresce geometricamente mentre ACF presenta dei picchi stagionali
 
 p <- periodogram(data$level)
-dd <- data.frame(freq=p$freq, spec=p$spec, time=1/p$freq)
+dd <- data.frame(freq = p$freq, spec = p$spec, time = 1/p$freq)
 order <- dd[order(-dd$spec),]
 top10 <- head(order, 10)
 top10
 
-rm(list = c("p", "dd", "order", "top10"))
+#rm(list = c("p", "dd", "order", "top10"))
 
 # è palese da ciò come siano presenti due stagionalità, una su 12 lag e una 24
 
@@ -123,22 +123,22 @@ ggplotly(autoplot(ts(data$level))) # utile per fare ispezione su valori anomali
 # check for stationarity in variance ----------------------------------------
 
 # convertiamo in df solo per verificare stazionarietà in varianza
-jpeg(filename = "../report/imgs/var_stationary.jpg", width = 600, height = 500, quality = 100)
+# jpeg(filename = "../report/imgs/var_stationary.jpg", width = 600, height = 500, quality = 100)
 data %>%
   add_column(date = date(data$datetime)) %>%
-  group_by(date) %>% 
+  group_by(date) %>%
   mutate(mean_day = mean(level), sd_day = sd(level)) %>%
-  select(date, mean_day, sd_day) %>% 
+  select(date, mean_day, sd_day) %>%
   distinct(date, mean_day, sd_day) %>%
-  ggplot(aes(mean_day, sd_day)) + 
-  geom_point() + 
+  ggplot(aes(mean_day, sd_day)) +
+  geom_point() +
   ggtitle("Mean per day vs Std per day") +
   labs(x = "Day mean",
        y = "Day std") +
   geom_smooth(method = "lm", se = FALSE) +
   annotate("label", label = "Seems to be stationary", x = 90, y = 26, size = 5) +
   theme_bw()
-dev.off()
+# dev.off()
 
 #ggplotly(pl)
 
@@ -147,7 +147,8 @@ dev.off()
 
 
 # verifichiamo la stazionarietà in media
-jpeg("../report/imgs/mean_stationary.jpg", width = 600, height = 500, quality = 100)
+
+#jpeg("../report/imgs/mean_stationary.jpg", width = 600, height = 500, quality = 100)
 data %>% 
   ggplot(aes(y = level, x = seq(1:nrow(data)))) +
   geom_line() +
@@ -166,7 +167,7 @@ data %>%
        x = "Datetime",
        y = "Level") +
   theme_bw()
-dev.off()
+#dev.off()
 #ggplotly(pl2)
 
 # a prima vista sembrerebbe essere stazionaria ma possiamo testare questa impressione
@@ -178,11 +179,11 @@ test_stat <- ur.df(data$level,
                    selectlags = "AIC")
 summary(test_stat)
 
-rm(list = c("test_stat", "pl", "pl2"))
+#rm(list = c("test_stat", "pl", "pl2"))
 
 # anche il test conferma essere stazionaria
 
-jpeg("../report/imgs/dsitribution.jpg", width = 600, height = 500, quality = 100)
+#jpeg("../report/imgs/dsitribution.jpg", width = 600, height = 500, quality = 100)
 data %>%
   ggplot(aes(x = level, y = ..density..)) +
   geom_histogram(colour = "black",
@@ -203,7 +204,7 @@ data %>%
            y = 0.012,
            size = 5) +
   theme_bw()
-dev.off()
+#dev.off()
 
 #ggplotly(pl)
 
@@ -215,65 +216,68 @@ dev.off()
 
 # solo variabili meteo additive con ciclo lunare normalizzato
 
-rain_norm <- as.vector(scale(trn$rain))
-vel_wind_norm <- as.vector(scale(trn$vel_wind))
-dir_wind_norm <- as.vector(scale(trn$dir_wind))
-l_motion_norm <- as.vector(scale(trn$l_motion))
-trn_norm <- data.frame(level = trn$level, rain = rain_norm, vel_wind = vel_wind_norm,
-                       dir_wind = dir_wind_norm,
-                       l_motion = l_motion_norm)
+#trn <- data[1:(nrow(data)-168),]
+#tst <- data[(nrow(data)-167):nrow(data),]
 
-rm(list = c("trn", "rain_norm", "vel_wind_norm", "dir_wind_norm", "l_motion_norm"))
-
-mod1 <- lm(formula = level ~ rain + 
-             vel_wind +
-             dir_wind + 
-             l_motion,
-           data = trn_norm)
-summary(mod1) # R2 4.7%
-acfpacf(mod1$residuals)
-plot(trn_norm$level, type = "l")
-lines(mod1$fitted.values, col = "red")
-abline(h = mean(trn_norm$level), col = "blue", lty = 2, lwd = 2)
-
-rain_norm_test <- as.vector(scale(tst$rain))
-vel_wind_norm_test <- as.vector(scale(tst$vel_wind))
-dir_wind_norm_test <- as.vector(scale(tst$dir_wind))
-l_motion_norm_test <- as.vector(scale(tst$l_motion))
-tst_norm <- data.frame(level = tst$level, rain = rain_norm_test, vel_wind = vel_wind_norm_test,
-                       dir_wind = dir_wind_norm_test,
-                   l_motion = l_motion_norm_test)
-
-rm(list = c("tst", "rain_norm_test", "vel_wind_norm_test", "dir_wind_norm_test", "l_motion_norm_test"))
-head(tst_norm)
-tail(tst_norm)
-nrow(tst_norm)
-
-pred <- predict(mod1, newdata = tst_norm, interval = 'prediction')
-nrow(pred)
-head(pred)
-
-plot(tst_norm$level, type = "l")
-lines(pred[,1], col = "red")
-abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
-
-# variabili meteo e ciclo lunare con interazioni fittato con metodo stepwise basato su AIC
-
-mod2 <- lm(level ~ ., data = trn_norm)
-final_model <- step(mod2, scope = . ~ .^2, direction = 'both')
-summary(final_model) #R2 5.7%
-acfpacf(mod2$residuals)
-
-pred2 <- predict(final_model, newdata = tst_norm, interval = 'prediction')
-nrow(pred2)
-head(pred2)
-
-
-plot(tst_norm$level, type = "l")
-lines(pred2[,1], col = "red")
-abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
-
-rm(list = c("final_model", "mod1", "mod2", "pred", "pred2"))
+# rain_norm <- as.vector(scale(trn$rain))
+# vel_wind_norm <- as.vector(scale(trn$vel_wind))
+# dir_wind_norm <- as.vector(scale(trn$dir_wind))
+# l_motion_norm <- as.vector(scale(trn$l_motion))
+# trn_norm <- data.frame(level = trn$level, rain = rain_norm, vel_wind = vel_wind_norm,
+#                        dir_wind = dir_wind_norm,
+#                        l_motion = l_motion_norm)
+# 
+# rm(list = c("trn", "rain_norm", "vel_wind_norm", "dir_wind_norm", "l_motion_norm"))
+# 
+# mod1 <- lm(formula = level ~ rain + 
+#              vel_wind +
+#              dir_wind + 
+#              l_motion,
+#            data = trn_norm)
+# summary(mod1) # R2 4.7%
+# acfpacf(mod1$residuals)
+# plot(trn_norm$level, type = "l")
+# lines(mod1$fitted.values, col = "red")
+# abline(h = mean(trn_norm$level), col = "blue", lty = 2, lwd = 2)
+# 
+# rain_norm_test <- as.vector(scale(tst$rain))
+# vel_wind_norm_test <- as.vector(scale(tst$vel_wind))
+# dir_wind_norm_test <- as.vector(scale(tst$dir_wind))
+# l_motion_norm_test <- as.vector(scale(tst$l_motion))
+# tst_norm <- data.frame(level = tst$level, rain = rain_norm_test, vel_wind = vel_wind_norm_test,
+#                        dir_wind = dir_wind_norm_test,
+#                    l_motion = l_motion_norm_test)
+# 
+# rm(list = c("tst", "rain_norm_test", "vel_wind_norm_test", "dir_wind_norm_test", "l_motion_norm_test"))
+# head(tst_norm)
+# tail(tst_norm)
+# nrow(tst_norm)
+# 
+# pred <- predict(mod1, newdata = tst_norm, interval = 'prediction')
+# nrow(pred)
+# head(pred)
+# 
+# plot(tst_norm$level, type = "l")
+# lines(pred[,1], col = "red")
+# abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
+# 
+# # variabili meteo e ciclo lunare con interazioni fittato con metodo stepwise basato su AIC
+# 
+# mod2 <- lm(level ~ ., data = trn_norm)
+# final_model <- step(mod2, scope = . ~ .^2, direction = 'both')
+# summary(final_model) #R2 5.7%
+# acfpacf(mod2$residuals)
+# 
+# pred2 <- predict(final_model, newdata = tst_norm, interval = 'prediction')
+# nrow(pred2)
+# head(pred2)
+# 
+# 
+# plot(tst_norm$level, type = "l")
+# lines(pred2[,1], col = "red")
+# abline(h = mean(tst_norm$level), col = "blue", lty = 2, lwd = 2)
+# 
+# rm(list = c("final_model", "mod1", "mod2", "pred", "pred2"))
 
 ## al netto di queste prove possiamo vedere come le covariate non sembrino spiegare molto.. proviamo con modelli ARIMA
 
@@ -284,70 +288,136 @@ rm(list = c("final_model", "mod1", "mod2", "pred", "pred2"))
 # i regressori se inseriti all'interno del modello ARIMA sembrerebbero non essere proprio
 # significativi
 
-acfpacf(trn_norm$level, max.lag = 100)
-xreg <- matrix(c(trn_norm$rain, trn_norm$vel_wind,
-         trn_norm$dir_wind, trn_norm$l_motion), ncol = 4)
+acfpacf(trn$level, max.lag = 100)
+
+xreg <- matrix(c(as.vector(scale(trn$rain)),
+                 as.vector(scale(trn$vel_wind)),
+                 as.vector(scale(trn$dir_wind)),
+                 as.vector(scale(trn$l_motion))), ncol = 4)
+
+# freq <- outer(1:nrow(trn_norm), 1:6)*2*pi/7
+# 
+# cs   <- cos(freq)                   
+# colnames(cs) <- paste("cos", 1:6)
+# si   <- sin(freq)                   
+# colnames(si) <- paste("sin", 1:6)
+# 
+# more_reg <- as.matrix(cbind(cs,si))
+# 
+# xreg <- cbind(xreg, more_reg) 
 
 col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
 colnames(xreg) <- col_names
+
+xreg_test <- matrix(c(as.vector(scale(tst$rain)),
+                      as.vector(scale(tst$vel_wind)),
+                      as.vector(scale(tst$dir_wind)),
+                      as.vector(scale(tst$l_motion))), ncol = 4)
+
+colnames(xreg_test) <- col_names
+
+xreg <- rbind(xreg, xreg_test)
+
 #(3,1,3)(1,1,3)[24]
-mod1_ar <- Arima(trn_norm$level, xreg = xreg,
+# 
+# mod_ar <- Arima(trn_norm$level+0.001, xreg = xreg,
+#                 include.drift = T,
+#                 c(0,0,0), list(order = c(0,0,0), period = 24))
+# 
+# summary(mod_ar)
+# acfpacf(mod_ar$residuals)
+
+mod1_ar <- Arima(trn$level, xreg = xreg[1:4248,,drop=FALSE],
                  include.drift = T,
-                 c(3,1,3)
-                 , list(order = c(1,1,3), period = 24))
+                 c(3,1,3), list(order = c(1,1,3), period = 24))
 summary(mod1_ar)
 acfpacf(mod1_ar$residuals, max.lag = 100)
 Box.test(mod1_ar$residuals, type="Ljung-Box")
 
-xreg_test <- matrix(c(tst_norm$rain, tst_norm$vel_wind,
-                 tst_norm$dir_wind, tst_norm$l_motion), ncol = 4)
-colnames(xreg_test) <- col_names
+y <- rbind(trn, tst)
+y <- y$level
+#y <- c(y, rep(NA, 168)) # add NA's for data we cannot compare
 
-pred1_ar <- forecast(mod1_ar, h = 168, xreg = xreg_test)
+# 1 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.001)
+}
+pred_1step1 <- mean(score)
+
+# 24 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+23),,drop=FALSE], h = 24)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.001)
+}
+pred_24step1 <- mean(score)
+
+# 168 steps ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+167),,drop=FALSE], h = 168)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.001)
+}
+pred_168step1 <- mean(score)
+
+pander::pandoc.table(matrix(c(pred_1step1, pred_24step1, pred_168step1), nrow = 1, ncol = 3,
+                            dimnames = list(c("mod1_ar"), c("1-step", "24-steps", "168-steps"))), style = "simple", caption = "MAPE values")
+
+
+
+#pred1_ar <- forecast(mod1_ar, h = 168, xreg = xreg_test)
 #ggplotly(autoplot(pred1_ar))
+# 
+# plot(tst_norm$level, type = "l")
+# lines(as.numeric(pred1_ar_168$mean), col = "red")
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1], tst_norm$level[1]),
+# MSE(pred1_ar$mean[1], tst_norm$level[1]),
+# MAE(pred1_ar$mean[1], tst_norm$level[1]),
+# MAPE(pred1_ar$mean[1]+0.01, tst_norm$level[1]+0.01),
+# RMSE(mod1_ar$fitted, trn_norm$level),
+# MSE(mod1_ar$fitted, trn_norm$level),
+# MAE(mod1_ar$fitted, trn_norm$level),
+# MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+#                                                                               "MAPE"),
+#                                                                           c("Test", "Train"))), caption = "1 step ahead prediction")
+# 
+# 
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
+#                         MSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
+#                         MAE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
+#                         MAPE(pred1_ar$mean[1:24]+0.01, tst_norm$level[1:24]+0.01),
+#                         RMSE(mod1_ar$fitted, trn_norm$level),
+#                         MSE(mod1_ar$fitted, trn_norm$level),
+#                         MAE(mod1_ar$fitted, trn_norm$level),
+#                         MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+#                                                                                                            "MAPE"),
+#                                                                                                          c("Test", "Train"))),
+#                      caption = "24 steps ahead prediction")
+# 
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
+#                         MSE(pred1_ar$mean, tst_norm$level),
+#                         MAE(pred1_ar$mean, tst_norm$level),
+#                         MAPE(pred1_ar$mean+0.01, tst_norm$level+0.01),
+#                         RMSE(mod1_ar$fitted, trn_norm$level),
+#                         MSE(mod1_ar$fitted, trn_norm$level),
+#                         MAE(mod1_ar$fitted, trn_norm$level),
+#                         MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+#                                                                                                            "MAPE"),
+#                                                                                                          c("Test", "Train"))),
+#                      caption = "168 steps ahead prediction")
 
-plot(tst_norm$level, type = "l")
-lines(as.numeric(pred1_ar_168$mean), col = "red")
 
-pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1], tst_norm$level[1]),
-MSE(pred1_ar$mean[1], tst_norm$level[1]),
-MAE(pred1_ar$mean[1], tst_norm$level[1]),
-MAPE(pred1_ar$mean[1]+0.01, tst_norm$level[1]+0.01),
-RMSE(mod1_ar$fitted, trn_norm$level),
-MSE(mod1_ar$fitted, trn_norm$level),
-MAE(mod1_ar$fitted, trn_norm$level),
-MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-                                                                              "MAPE"),
-                                                                          c("Test", "Train"))), caption = "1 step ahead prediction")
-
-
-
-pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-                        MSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-                        MAE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-                        MAPE(pred1_ar$mean[1:24]+0.01, tst_norm$level[1:24]+0.01),
-                        RMSE(mod1_ar$fitted, trn_norm$level),
-                        MSE(mod1_ar$fitted, trn_norm$level),
-                        MAE(mod1_ar$fitted, trn_norm$level),
-                        MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-                                                                                                           "MAPE"),
-                                                                                                         c("Test", "Train"))),
-                     caption = "24 steps ahead prediction")
-
-
-pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
-                        MSE(pred1_ar$mean, tst_norm$level),
-                        MAE(pred1_ar$mean, tst_norm$level),
-                        MAPE(pred1_ar$mean+0.01, tst_norm$level+0.01),
-                        RMSE(mod1_ar$fitted, trn_norm$level),
-                        MSE(mod1_ar$fitted, trn_norm$level),
-                        MAE(mod1_ar$fitted, trn_norm$level),
-                        MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-                                                                                                           "MAPE"),
-                                                                                                         c("Test", "Train"))),
-                     caption = "168 steps ahead prediction")
 
 ################# oce & SWMPr -------------
+
 # Direi di escludere le variabili meteo e ciclo perchè appena subentrano gli AR diventano non significative
 
 data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
@@ -382,7 +452,7 @@ preds <- sapply(constituents, function(x){
 predall <- rowSums(preds) + mean(datsl[['elevation']])
 preds <- data.frame(time = datsl[['time']], preds, Estimated = predall) 
 
-head(preds)
+#head(preds)
 
 plot(data$level[1:168]/100, type = "l")
 lines(preds$Estimated[1:168], col = "red")
@@ -396,52 +466,88 @@ data$O1 <- preds$O1
 data$SA <- preds$SA
 data$P1 <- preds$P1
 
+# 
+# head(data)
+# mod1 <- lm(level ~ 
+#              # M2+
+#              # S2+
+#              # N2+
+#              # K2+K1+
+#              # O1+
+#              # SA+
+#              # P1+
+#              as.factor(dummy_rain)*
+#              as.vector(scale(rain))+
+#              as.factor(dummy_wind)*
+#             as.vector(scale(vel_wind))*
+#              as.vector(scale(dir_wind))+
+#              as.vector(scale(l_motion)),
+#            data = data)
+# summary(mod1) #R2 75,5%
+#acfpacf(mod1$residuals) # AR2 with 1D
 
-head(data)
-mod1 <- lm(level ~ 
-             # M2+
-             # S2+
-             # N2+
-             # K2+K1+
-             # O1+
-             # SA+
-             # P1+
-             as.factor(dummy_rain)*
-             as.vector(scale(rain))+
-             as.factor(dummy_wind)*
-            as.vector(scale(vel_wind))*
-             as.vector(scale(dir_wind))+
-             as.vector(scale(l_motion)),
-           data = data)
-summary(mod1) #R2 75,5%
-acfpacf(mod1$residuals) # AR2 with 1D
-trn <- data[74473:(nrow(data)-168),]
-tst <- data[(nrow(data)-167):nrow(data),]
-tail(trn)
-head(tst)
+trn <- data[74305:(nrow(data)-336),]
+tst <- data[(nrow(data)-335):nrow(data),]
 
+col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA", "P1")
 xreg <- matrix(c(trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$SA, trn$P1), ncol = 8)
-plot(zoo(xreg))
-
-col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA"
-               , "P1")
+xreg_test <- matrix(c(tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
 colnames(xreg) <- col_names
+colnames(xreg_test) <- col_names
+
+
+xreg <- rbind(xreg, xreg_test)
+#plot(zoo(xreg))
 
 #(3,1,0)(0,0,0)[24]
-mod2_ar <- Arima(trn$level/100, xreg = xreg,
+mod2_ar <- Arima(trn$level/100, xreg = xreg[1:4248,,drop=F],
                  include.drift = T,
                  c(3,1,0)
-                 , list(order = c(0,0,0), period = 24)
-)
+                 , list(order = c(0,0,0), period = 24))
 
 summary(mod2_ar)
 acfpacf(mod2_ar$residuals)
 Box.test(mod2_ar$residuals, type="Ljung-Box")
 
-#summary(lm(mod2_ar$residuals*100~trn$dummy_rain*trn$rain*trn$dummy_wind*trn$dir_wind))
-ggplotly(autoplot(ts(mod2_ar$residuals)))
-xreg_test <- matrix(c(tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
-colnames(xreg_test) <- col_names
+
+y <- rbind(trn, tst)
+y <- y$level/100
+#y <- c(y, rep(NA, 168)) # add NA's for data we cannot compare
+
+# 1 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.001)
+}
+pred_1step2 <- mean(score)
+
+# 24 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+23),,drop=FALSE], h = 24)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.001)
+}
+pred_24step2 <- mean(score)
+
+# 168 steps ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+167),,drop=FALSE], h = 168)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.001)
+}
+pred_168step2 <- mean(score)
+
+
+pander::pandoc.table(matrix(c(pred_1step1, pred_24step1, pred_168step1,
+  pred_1step2, pred_24step2, pred_168step2), nrow = 2, ncol = 3,
+  dimnames = list(c("mod1_ar", "mod2_ar"), c("1-step", "24-steps", "168-steps")), byrow = T),
+  style = "simple", caption = "MAPE values")
+
+#ggplotly(autoplot(ts(mod2_ar$residuals)))
 
 # p <- plot_ly(orientation = "h", width = 700, height = 350, as.data.frame(xreg_test), x = ~as.POSIXct(tst$datetime, tz = "UTC"), y = ~M2,
 #              name = 'M2', type = 'scatter', mode = 'lines') %>%
@@ -456,46 +562,46 @@ colnames(xreg_test) <- col_names
 # p
 # htmlwidgets::saveWidget(as_widget(p), "components.html", )
 
-pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
-ggplotly(autoplot(pred2_ar))
-
-plot(tst$level, type = "l")
-lines(as.numeric(pred2_ar$mean)*100, col = "red")
-lines(as.numeric(pred1_ar$mean), col = "blue")
-
-pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1]*100, tst$level[1]),
-         MSE(pred2_ar$mean[1]*100, tst$level[1]),
-         MAE(pred2_ar$mean[1]*100, tst$level[1]),
-         MAPE((pred2_ar$mean[1]*100)+0.01, tst$level[1]+0.01),
-         RMSE(mod2_ar$fitted*100, trn$level),
-         MSE(mod2_ar$fitted*100, trn$level),
-         MAE(mod2_ar$fitted*100, trn$level),
-         MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-       ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-                                           c("Test", "Train"))),
-       caption = "1 step ahead prediction")
-
-pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-                              MSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-                              MAE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-                              MAPE((pred2_ar$mean[1:24]*100)+0.01, tst$level[1:24]+0.01),
-                              RMSE(mod2_ar$fitted*100, trn$level),
-                              MSE(mod2_ar$fitted*100, trn$level),
-                              MAE(mod2_ar$fitted*100, trn$level),
-                              MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-                            ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-                                                                c("Test", "Train"))),
-                     caption = "24 step ahead prediction")
-
-pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean*100, tst$level),
-                              MSE(pred2_ar$mean*100, tst$level),
-                              MAE(pred2_ar$mean*100, tst$level),
-                              MAPE((pred2_ar$mean*100)+0.01, tst$level+0.01),
-                              RMSE(mod2_ar$fitted*100, trn$level),
-                              MSE(mod2_ar$fitted*100, trn$level),
-                              MAE(mod2_ar$fitted*100, trn$level),
-                              MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-                            ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-                                                                c("Test", "Train"))),
-                     caption = "168 step ahead prediction")
-
+# pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
+# ggplotly(autoplot(pred2_ar))
+# 
+# plot(tst$level, type = "l")
+# lines(as.numeric(pred2_ar$mean)*100, col = "red")
+# lines(as.numeric(pred1_ar$mean), col = "blue")
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1]*100, tst$level[1]),
+#          MSE(pred2_ar$mean[1]*100, tst$level[1]),
+#          MAE(pred2_ar$mean[1]*100, tst$level[1]),
+#          MAPE((pred2_ar$mean[1]*100)+0.01, tst$level[1]+0.01),
+#          RMSE(mod2_ar$fitted*100, trn$level),
+#          MSE(mod2_ar$fitted*100, trn$level),
+#          MAE(mod2_ar$fitted*100, trn$level),
+#          MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
+#        ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+#                                            c("Test", "Train"))),
+#        caption = "1 step ahead prediction")
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
+#                               MSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
+#                               MAE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
+#                               MAPE((pred2_ar$mean[1:24]*100)+0.01, tst$level[1:24]+0.01),
+#                               RMSE(mod2_ar$fitted*100, trn$level),
+#                               MSE(mod2_ar$fitted*100, trn$level),
+#                               MAE(mod2_ar$fitted*100, trn$level),
+#                               MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
+#                             ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+#                                                                 c("Test", "Train"))),
+#                      caption = "24 step ahead prediction")
+# 
+# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean*100, tst$level),
+#                               MSE(pred2_ar$mean*100, tst$level),
+#                               MAE(pred2_ar$mean*100, tst$level),
+#                               MAPE((pred2_ar$mean*100)+0.01, tst$level+0.01),
+#                               RMSE(mod2_ar$fitted*100, trn$level),
+#                               MSE(mod2_ar$fitted*100, trn$level),
+#                               MAE(mod2_ar$fitted*100, trn$level),
+#                               MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
+#                             ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+#                                                                 c("Test", "Train"))),
+#                      caption = "168 step ahead prediction")
+# 
