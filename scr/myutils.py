@@ -1,4 +1,5 @@
 import keras
+import numpy as np
 from matplotlib import pyplot as plt
 from IPython.display import clear_output
 
@@ -27,7 +28,7 @@ class TrainingPlot(keras.callbacks.Callback):
         #self.f1.append(logs.get('f1'))
         #self.val_f1.append(logs.get('val_f1'))
 
-        if len(self.losses)%1==0:
+        if len(self.losses)%10==0:
 
             clear_output(wait=True)
             N = np.arange(0, len(self.losses))
