@@ -1,5 +1,4 @@
 base
-RevoUtilsMath
-RevoUtils
 knitr
 rmdformats
+shiny

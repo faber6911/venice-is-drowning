@@ -53,21 +53,24 @@ lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 # 
 # anyNA(data)
 # anyNA(lunar_motion)
-
-# p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
+# p1 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC")), data = data[74305:(nrow(data)-336),]) +
 #   geom_line() +
 #   theme_bw() +
-#   labs(x = "nobs", y = "level", title = "Linear models train set")
+#   labs(x = "datetime", y = "", title = "Linear models insample (06/2018 - 12/2018)")
+# p2 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC")), data = data[1:(nrow(data)-336),]) +
+#   geom_line() +
+#   theme_bw() +
+#   labs(x = "datetime", y = "level", title = "Machine learning insample (01/2010 - 12/2018)")
 # 
-# p2 <- ggplot(aes(y = level, x = seq(1, nrow(data)-168, 1)), data = data[1:(nrow(data)-168),]) +
-#   geom_line() +
-#   theme_bw() +
-#   labs(x = "nobs", y = "", title = "Machine learning train set")
-# p3 <- ggplot(aes(y = level, x = seq(1, 168, 1)), data = data[(nrow(data)-167):nrow(data),]) + 
-#   geom_line() + theme_bw() + labs(x = "nobs", y = "level", title = "Common test set")
+# label <- numeric(336)
+# label[1:167] <- 0
+# label[168:length(label)] <- 1
+# p3 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC"), color = factor(label)), data = data[(nrow(data)-335):nrow(data),]) +
+#   geom_line() + theme_bw() + labs(x = "datetime", y = "level", title = "Common test set (17/12/2018 - 31/12/2018)") +
+#   scale_colour_manual(values=c("darkgrey", "darkred"), name = "", labels = c("validation", "test"))
 # 
 # jpeg("../report/imgs/train_test.jpg", width = 1200, height = 500, quality = 100)
-# (p1 | p2) / p3
+# (p2 | p1)/p3
 # dev.off()
 # 
 # jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)
@@ -295,6 +298,7 @@ xreg <- matrix(c(as.vector(scale(trn$rain)),
                  as.vector(scale(trn$dir_wind)),
                  as.vector(scale(trn$l_motion))), ncol = 4)
 
+
 # freq <- outer(1:nrow(trn_norm), 1:6)*2*pi/7
 # 
 # cs   <- cos(freq)                   
@@ -326,13 +330,15 @@ xreg <- rbind(xreg, xreg_test)
 # 
 # summary(mod_ar)
 # acfpacf(mod_ar$residuals)
-
-mod1_ar <- Arima(trn$level, xreg = xreg[1:4248,,drop=FALSE],
-                 include.drift = T,
+#trn[trn$level<0 & trn$level>=(-1),]
+mod1_ar <- Arima(trn$level+0.1, xreg = xreg[1:4248,,drop=FALSE],
+                 include.drift = F,
                  c(3,1,3), list(order = c(1,1,3), period = 24))
 summary(mod1_ar)
 acfpacf(mod1_ar$residuals, max.lag = 100)
 Box.test(mod1_ar$residuals, type="Ljung-Box")
+
+ggplotly(autoplot(ts(trn$level), series = "true")+autolayer(ts(mod1_ar$fitted), series = "fitted"))
 
 y <- rbind(trn, tst)
 y <- y$level
@@ -343,7 +349,7 @@ score <- numeric(168)
 for (i in 1:168){
   mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
   pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
-  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.001)
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.1)
 }
 pred_1step1 <- mean(score)
 
@@ -352,7 +358,7 @@ score <- numeric(168)
 for (i in 1:168){
   mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
   pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+23),,drop=FALSE], h = 24)$mean
-  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.001)
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.1)
 }
 pred_24step1 <- mean(score)
 
@@ -361,58 +367,61 @@ score <- numeric(168)
 for (i in 1:168){
   mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
   pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+167),,drop=FALSE], h = 168)$mean
-  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.001)
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.1)
 }
 pred_168step1 <- mean(score)
 
 pander::pandoc.table(matrix(c(pred_1step1, pred_24step1, pred_168step1), nrow = 1, ncol = 3,
-                            dimnames = list(c("mod1_ar"), c("1-step", "24-steps", "168-steps"))), style = "simple", caption = "MAPE values")
+                            dimnames = list(c("mod1_ar"), c("1-step", "24-steps", "168-steps"))),
+                     style = "simple", caption = "MAPE values")
 
 
 
-#pred1_ar <- forecast(mod1_ar, h = 168, xreg = xreg_test)
+pred1_ar <- forecast(mod1_ar, h = 168, xreg = xreg[4249:(4249+167),])
 #ggplotly(autoplot(pred1_ar))
 # 
 # plot(tst_norm$level, type = "l")
 # lines(as.numeric(pred1_ar_168$mean), col = "red")
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1], tst_norm$level[1]),
-# MSE(pred1_ar$mean[1], tst_norm$level[1]),
-# MAE(pred1_ar$mean[1], tst_norm$level[1]),
-# MAPE(pred1_ar$mean[1]+0.01, tst_norm$level[1]+0.01),
-# RMSE(mod1_ar$fitted, trn_norm$level),
-# MSE(mod1_ar$fitted, trn_norm$level),
-# MAE(mod1_ar$fitted, trn_norm$level),
-# MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-#                                                                               "MAPE"),
-#                                                                           c("Test", "Train"))), caption = "1 step ahead prediction")
+pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1], y[4249]),
+MSE(pred1_ar$mean[1], y[4249]),
+MAE(pred1_ar$mean[1], y[4249]),
+MAPE(pred1_ar$mean[1], y[4249]+0.1),
+RMSE(mod1_ar$fitted, y[1:4248]),
+MSE(mod1_ar$fitted, y[1:4248]),
+MAE(mod1_ar$fitted, y[1:4248]),
+MAPE(mod1_ar$fitted, y[1:4248]+0.1)), ncol = 2, nrow = 4,
+dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"), c("Test", "Train"))),
+caption = "1 step ahead one shot prediction")
+
 # 
 # 
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-#                         MSE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-#                         MAE(pred1_ar$mean[1:24], tst_norm$level[1:24]),
-#                         MAPE(pred1_ar$mean[1:24]+0.01, tst_norm$level[1:24]+0.01),
-#                         RMSE(mod1_ar$fitted, trn_norm$level),
-#                         MSE(mod1_ar$fitted, trn_norm$level),
-#                         MAE(mod1_ar$fitted, trn_norm$level),
-#                         MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-#                                                                                                            "MAPE"),
-#                                                                                                          c("Test", "Train"))),
-#                      caption = "24 steps ahead prediction")
+
+pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean[1:24], y[4249:(4249+23)]),
+                        MSE(pred1_ar$mean[1:24], y[4249:(4249+23)]),
+                        MAE(pred1_ar$mean[1:24], y[4249:(4249+23)]),
+                        MAPE(pred1_ar$mean[1:24], y[4249:(4249+23)]+0.1),
+                        RMSE(mod1_ar$fitted, y[1:4248]),
+                        MSE(mod1_ar$fitted, y[1:4248]),
+                        MAE(mod1_ar$fitted, y[1:4248]),
+                        MAPE(mod1_ar$fitted, y[1:4248]+0.1)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+                                                                                                           "MAPE"),
+                                                                                                         c("Test", "Train"))),
+                     caption = "24 steps ahead one shot prediction")
 # 
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, tst_norm$level),
-#                         MSE(pred1_ar$mean, tst_norm$level),
-#                         MAE(pred1_ar$mean, tst_norm$level),
-#                         MAPE(pred1_ar$mean+0.01, tst_norm$level+0.01),
-#                         RMSE(mod1_ar$fitted, trn_norm$level),
-#                         MSE(mod1_ar$fitted, trn_norm$level),
-#                         MAE(mod1_ar$fitted, trn_norm$level),
-#                         MAPE(mod1_ar$fitted+0.01, trn_norm$level+0.01)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
-#                                                                                                            "MAPE"),
-#                                                                                                          c("Test", "Train"))),
-#                      caption = "168 steps ahead prediction")
+pander::pandoc.table(matrix(c(RMSE(pred1_ar$mean, y[4249:(4249+167)]),
+                        MSE(pred1_ar$mean, y[4249:(4249+167)]),
+                        MAE(pred1_ar$mean, y[4249:(4249+167)]),
+                        MAPE(pred1_ar$mean, y[4249:(4249+167)]+0.1),
+                        RMSE(mod1_ar$fitted, y[1:4248]),
+                        MSE(mod1_ar$fitted, y[1:4248]),
+                        MAE(mod1_ar$fitted, y[1:4248]),
+                        MAPE(mod1_ar$fitted, y[1:4248]+0.1)), ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE",
+                                                                                                           "MAPE"),
+                                                                                                         c("Test", "Train"))),
+                     caption = "168 steps ahead one shot prediction")
 
 
 
@@ -486,6 +495,9 @@ data$P1 <- preds$P1
 # summary(mod1) #R2 75,5%
 #acfpacf(mod1$residuals) # AR2 with 1D
 
+#data$dummy_regressor <- as.factor(data$dummy_regressor)
+#View(data)
+
 trn <- data[74305:(nrow(data)-336),]
 tst <- data[(nrow(data)-335):nrow(data),]
 
@@ -497,18 +509,36 @@ colnames(xreg_test) <- col_names
 
 
 xreg <- rbind(xreg, xreg_test)
-#plot(zoo(xreg))
 
-#(3,1,0)(0,0,0)[24]
-mod2_ar <- Arima(trn$level/100, xreg = xreg[1:4248,,drop=F],
-                 include.drift = T,
-                 c(3,1,0)
-                 , list(order = c(0,0,0), period = 24))
+# freq <- outer(1:nrow(xreg), 1:10)*2*pi/25
+# 
+# cs   <- cos(freq)
+# colnames(cs) <- paste("cos", 1:10)
+# si   <- sin(freq)
+# colnames(si) <- paste("sin", 1:10)
+# 
+# more_reg <- as.matrix(cbind(cs,si))
+# xreg <- cbind(xreg, more_reg)
+
+#plot(zoo(xreg))
+#(3,0,2)(2,0,0)[24]
+
+
+acfpacf(trn$level)
+mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg[1:4248,,drop=F],
+                 include.drift = F,
+                 c(3,0,2)
+                 , list(order = c(1,0,0), period = 24))
 
 summary(mod2_ar)
-acfpacf(mod2_ar$residuals)
-Box.test(mod2_ar$residuals, type="Ljung-Box")
+acfpacf(mod2_ar$residuals, max.lag = 72)
+#ggplotly(autoplot(ts(mod2_ar$residuals)))
+#ggplotly(autoplot(ts(trn$level)))
+ggplotly(autoplot(ts(trn$level/100), series = "real") + autolayer(mod2_ar$fitted, series = "fitted"))
 
+Box.test(mod2_ar$residuals, type="Ljung-Box")
+autoplot(mod2_ar)
+#Mod(1/polyroot(c(1,-mod2_ar$coef[1:3])))
 
 y <- rbind(trn, tst)
 y <- y$level/100
@@ -521,7 +551,8 @@ for (i in 1:168){
   pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
   score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.001)
 }
-pred_1step2 <- mean(score)
+pred_1step2 <- mean(score, na.rm = T)
+pred_1step2
 
 # 24 step ahead predictions
 score <- numeric(168)
@@ -531,6 +562,7 @@ for (i in 1:168){
   score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.001)
 }
 pred_24step2 <- mean(score)
+pred_24step2
 
 # 168 steps ahead predictions
 score <- numeric(168)
@@ -540,7 +572,11 @@ for (i in 1:168){
   score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.001)
 }
 pred_168step2 <- mean(score)
+pred_168step2
 
+pander::pandoc.table(matrix(c(pred_1step2, pred_24step2, pred_168step2), nrow = 1, ncol = 3,
+                            dimnames = list(c("mod2_ar"), c("1-step", "24-steps", "168-steps")), byrow = T),
+                     style = "simple", caption = "MAPE values")
 
 pander::pandoc.table(matrix(c(pred_1step1, pred_24step1, pred_168step1,
   pred_1step2, pred_24step2, pred_168step2), nrow = 2, ncol = 3,
@@ -562,46 +598,48 @@ pander::pandoc.table(matrix(c(pred_1step1, pred_24step1, pred_168step1,
 # p
 # htmlwidgets::saveWidget(as_widget(p), "components.html", )
 
-# pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg_test)
+pred2_ar <- forecast(mod2_ar, h = 168, xreg = xreg[4249:(4249+167),])
 # ggplotly(autoplot(pred2_ar))
 # 
 # plot(tst$level, type = "l")
 # lines(as.numeric(pred2_ar$mean)*100, col = "red")
 # lines(as.numeric(pred1_ar$mean), col = "blue")
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1]*100, tst$level[1]),
-#          MSE(pred2_ar$mean[1]*100, tst$level[1]),
-#          MAE(pred2_ar$mean[1]*100, tst$level[1]),
-#          MAPE((pred2_ar$mean[1]*100)+0.01, tst$level[1]+0.01),
-#          RMSE(mod2_ar$fitted*100, trn$level),
-#          MSE(mod2_ar$fitted*100, trn$level),
-#          MAE(mod2_ar$fitted*100, trn$level),
-#          MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-#        ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-#                                            c("Test", "Train"))),
-#        caption = "1 step ahead prediction")
+pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1]*100, y[4249]*100),
+         MSE(pred2_ar$mean[1]*100, y[4249]*100),
+         MAE(pred2_ar$mean[1]*100, y[4249]*100),
+         MAPE((pred2_ar$mean[1]*100), (y[4249]*100)+0.1),
+         RMSE(mod2_ar$fitted*100, y[1:4248]*100),
+         MSE(mod2_ar$fitted*100, y[1:4248]*100),
+         MAE(mod2_ar$fitted*100, y[1:4248]*100),
+         MAPE((mod2_ar$fitted*100)+0.01, (y[1:4248]*100)+0.1)),
+       ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+                                            c("Test", "Train"))),
+        caption = "1 step ahead one shot prediction")
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-#                               MSE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-#                               MAE(pred2_ar$mean[1:24]*100, tst$level[1:24]),
-#                               MAPE((pred2_ar$mean[1:24]*100)+0.01, tst$level[1:24]+0.01),
-#                               RMSE(mod2_ar$fitted*100, trn$level),
-#                               MSE(mod2_ar$fitted*100, trn$level),
-#                               MAE(mod2_ar$fitted*100, trn$level),
-#                               MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-#                             ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-#                                                                 c("Test", "Train"))),
-#                      caption = "24 step ahead prediction")
+pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean[1:24]*100, y[4249:(4249+23)]*100),
+                              MSE(pred2_ar$mean[1:24]*100, y[4249:(4249+23)]*100),
+                              MAE(pred2_ar$mean[1:24]*100, y[4249:(4249+23)]*100),
+                              MAPE((pred2_ar$mean[1:24]*100), (y[4249:(4249+23)]*100)+0.1),
+                              RMSE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MSE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MAE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MAPE((mod2_ar$fitted*100), (y[1:4248]*100)+0.1)),
+                            ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+                                                                c("Test", "Train"))),
+                     caption = "24 step ahead one shot prediction")
+
+pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean*100, y[4249:(4249+167)]*100),
+                              MSE(pred2_ar$mean*100, y[4249:(4249+167)]*100),
+                              MAE(pred2_ar$mean*100, y[4249:(4249+167)]*100),
+                              MAPE((pred2_ar$mean*100), (y[4249:(4249+167)]*100)+0.1),
+                              RMSE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MSE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MAE(mod2_ar$fitted*100, y[1:4248]*100),
+                              MAPE((mod2_ar$fitted*100), (y[1:4248]*100)+0.1)),
+                            ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
+                                                                c("Test", "Train"))),
+                     caption = "168 step ahead one shot prediction")
 # 
-# pander::pandoc.table(matrix(c(RMSE(pred2_ar$mean*100, tst$level),
-#                               MSE(pred2_ar$mean*100, tst$level),
-#                               MAE(pred2_ar$mean*100, tst$level),
-#                               MAPE((pred2_ar$mean*100)+0.01, tst$level+0.01),
-#                               RMSE(mod2_ar$fitted*100, trn$level),
-#                               MSE(mod2_ar$fitted*100, trn$level),
-#                               MAE(mod2_ar$fitted*100, trn$level),
-#                               MAPE((mod2_ar$fitted*100)+0.01, trn$level+0.01)),
-#                             ncol = 2, nrow = 4, dimnames = list(c("RMSE", "MSE", "MAE", "MAPE"),
-#                                                                 c("Test", "Train"))),
-#                      caption = "168 step ahead prediction")
-# 
+# plot(y[4249:(4249+167)], type = "l")
+# lines(as.numeric(pred2_ar$mean), col = "red")

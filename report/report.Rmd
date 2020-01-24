@@ -11,6 +11,7 @@ output:
 ```{r knitr_init, echo=FALSE, cache=FALSE}
 library(knitr)
 library(rmdformats)
+library(shiny)
 
 ## Global options
 options(max.print="75")
@@ -32,32 +33,60 @@ text-align:justify
 
 # Abstract
 
-The main objective of the proposed project is basically to analyze the data of the tide detections regarding the area of the Venice lagoon with the aim of creating and testing predictive models, assessed on a time horizon ranging from one hour up to a week of forecast.
+The main objective of the project is to analyze the data of the tide detections regarding the area of the Venice lagoon, producing predictive models whose performances are evaluated on a time horizon ranging from one hour up to a week of forecast.
 
-For this purpose, the models created are three, two linear and one of machine learning:
+For this purpose, three models, both linear and machine-learning based, are tested:
 
-* an ARIMA (AutoRegressive Integrated Moving Average) model;
-* a UCM (Unobserved Component Models) model;
-* an LSTM (Long Short-Term Memory) model.
+* ARIMA (AutoRegressive Integrated Moving Average);
+* UCM (Unobserved Component Models);
+* LSTM (Long Short-Term Memory).
 
 # Datasets
 
-The datasets used for the project pipeline are two: the first dataset contains the tides level measurements in cm in the Venice lagoon from a certain reference level, obtained through the use of a sensor, between 1983 and 2018 while the second holds the information regarding meteorological variables such as rainfall in mm, wind direction in degree at 10 meters and finally wind speed at 10 meters in meters per second in the periods between 2000 and 2019.
+Two datasets are the basis for the project pipeline: 
+
+  - the "main" dataset contains the tides level measurements (in cm) in the Venice lagoon from a certain reference level, obtained through the use of a sensor, between 1983 and 2018;
+  - a second dataset holds the information regarding meteorological variables such as rainfall in mm, wind direction in degree at 10 meters and finally wind speed at 10 meters in meters per second in the periods between 2000 and 2019.
+
 <!-- I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019. -->
 
-The tides level dataset is composed using the single historical datasets made public by the city of Venice, in particular from [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). The data regarding the meteorological variables, instead have been provided, on request, by [ARPA Veneto](https://www.arpa.veneto.it/). All the preprocessing operations regarding parsing, inspection and the final union of the cited datasets are available in the following scripts/html realized with this order:
-<!-- Il dataset dei livelli di marea è stato composto dai singoli dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche sono stati forniti, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili nei seguenti script/html realizzati con questo ordine: -->
+The tides level dataset is composed using the single historical datasets made public by the city of Venice, in particular from [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). The data regarding the meteorological variables, instead have been provided, on request, by [ARPA Veneto](https://www.arpa.veneto.it/). 
 
-* **parsing_tides_data** è lo script utilizzato per svolgere l'operazione di assemblaggio del dataset delle maree completo, importando ed unificando tutti i dataset annuali disponibili;
-* **inspection** contiene una serie di ispezioni preliminari rispetto i dati citati;
-* **preprocess_weather_data_2000_2019** contiene invece le operazioni di processing riguardanti i dati meteorologici;
-* **parsing_tides_weather** riassume infine le operazioni svolte per risolvere il problema dei dati mancanti per quanto riguarda il dataset dei dati meteorologici ed il finale *merge* dei due file.
+All the preprocessing operations regarding parsing, inspection and the final union of the cited datasets are available in the following scripts:
 
+<!-- 
+/html realized with this order:
+Il dataset dei livelli di marea è stato composto dai singoli dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche sono stati forniti, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili nei seguenti script/html realizzati con questo ordine: -->
+
+* **parsing_tides_data** allows to perform the construction of the tidal dataset, importing and unifying each single annual dataset;
+
+<!-- è lo script utilizzato per svolgere l'operazione di assemblaggio del dataset delle maree completo, importando ed unificando tutti i dataset annuali disponibili;
+
+-->
+
+* **inspection** contains a series of preliminar inspection of the aformentioned data:
+
+<!-- contiene una serie di ispezioni preliminari rispetto i dati citati;
+-->
+
+* **preprocess_weather_data_2000_2019** contains the preprocessing operations of the weather-related dataset;
+
+<!-- contiene invece le operazioni di processing riguardanti i dati meteorologici;
+-->
+* **parsing_tides_weather**  reports a summary of the procedure implemented in order to deal with missing data in the weather dataset, and contains the merging operation producing the final weather dataset.
+
+<!-- riassume infine le operazioni svolte per risolvere il problema dei dati mancanti per quanto riguarda il dataset dei dati meteorologici ed il finale *merge* dei due file.
+-->
+As a precise choice, due to time-related and computational reasons, only the data ranging from 2010 and 2018 are kept after the preprocessing.
+<!--
 Come scelta progettuale, si è deciso in fase di processing dei dati di limitare l'utilizzo di questi al periodo tra Gennaio 2010 e Dicembre 2018.
-
+-->
 # Data inspection
 
+During the preprocessing phase, some descriptive visualizations regarding the main time series are produced in order to inspect its characteristics.  
+<!--
 Durante la fase di processing dei dati e prima di procedere all'effettiva realizzazione dei modelli di previsione, sono state prodotte una serie di visualizzazioni con lo scopo di ispezionare a fondo alcuni aspetti riguardanti la serie storica. 
+-->
 
 <center>
 <figure>
@@ -66,7 +95,10 @@ Durante la fase di processing dei dati e prima di procedere all'effettiva realiz
 </figure>
 </center>
 <br>
+
+<!--
 In fig. 1 è possibile osservare la serie storica completa, rappresentata insieme ai plot di autocorrelazione ed autocorrelazione parziale, mentre in fig. 2 si può verificare come il fenomeno delle maree sembrerebbe distribuirsi seguendo una distribuzione normale. In questo caso, infatti, i concetti di stazionarietà debole e forte si equivalgono.
+-->
 
 <center>
 <figure>
@@ -75,8 +107,9 @@ In fig. 1 è possibile osservare la serie storica completa, rappresentata insiem
 </figure>
 </center>
 <br>
+<!--
 Durante il lavoro di prima ispezione dei dati storici una delle verifiche effettuate ha riguardato la stazionarietà in media e quella in varianza: per quanto riguarda la prima osservando la serie in fig. 1 questa sembrerebbe effettivamente risultare stazionaria in media, per questa ragione per confermare l'ipotesi di stazionarietà in fig. 3 è riportato l'output di un test Augmented Dickey-Fuller che, come si vede, conferma a tutti gli effetti la stazionarietà in media del fenomeno mareale.
-
+-->
 <center>
 <figure>
 ![fig 3: Output augmented Dickey-Fuller test](imgs/adf_test.PNG)
@@ -84,7 +117,9 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 </figure>
 </center>
 <br>
+<!--
 Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto.
+-->
 <center>
 <figure>
 ![fig 4: variance stationary](imgs/var_stationary.jpg)
@@ -125,7 +160,7 @@ Regarding the first strategy, after processing the meteorological data as previo
 <div align="center">
 <figure>
 ```{r out.width="60%", tidy=TRUE}
-shiny::includeHTML("imgs/test.html")
+#shiny::includeHTML("imgs/test.html")
 ```
 <figcaption>Figure 6: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
 </figure>
@@ -145,7 +180,7 @@ The second strategy instead, as anticipated, concerns the principal periodic com
 <div align="center">
 <figure>
 ```{r, out.width="60%"}
-shiny::includeHTML("components.html")
+shiny::includeHTML("imgs/components.html")
 ```
 <figcaption>Figure 7: Interactive filtering plot for the extracted components</figcaption>
 </figure>
