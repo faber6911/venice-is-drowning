@@ -112,9 +112,9 @@ mod1$Q
 mod1$T
 mod1$Z
 mod1$P1inf <- mod1$P1inf * 0
-vary <- var(y, na.rm = TRUE)
+vary <- var(data$level[1:(nrow(data)-336)], na.rm = TRUE)
 diag(mod1$P1) <- log(vary)
-mod1$a1[1] <- mean(y, na.rm = T)
+mod1$a1[1] <- mean(data$level[1:(nrow(data)-336)], na.rm = T)
 mod1$a1
 mod1$P1
 
@@ -264,10 +264,97 @@ pander::pandoc.table(matrix(c(step1_ucm1, step24_ucm1, step168_ucm1), nrow = 1, 
                             dimnames = list(c("mod_ucm1"), c("1-step", "24-steps", "168-steps"))), style = "simple")
 
 
+# one shot predictions
+
+lev <- c(rep(NA, 168))
+temp_mod <- SSModel(lev ~ 0 +
+                      SSMtrend(1, fit1$model$Q[1,1,1])+
+                      M2+
+                      S2+
+                      N2+
+                      K2+
+                      K1+
+                      O1+
+                      SA+
+                      P1,
+                    H = fit1$model$H,
+                    data = data[(4248+1):(4248+168),])
 
 
-y_true <- data$level[(nrow(data)-335):nrow(data)]
-plh <- c(data$level[nrow(data)], rep(NA,335))
+y_true <- data$level[4249:(4249+167)]
+y_pred <- as.numeric(predict(fit1$model, newdata = temp_mod, n.ahead = 168))*100
+plot(y_true, type = "l")
+lines(y_pred, col = "red")
+
+# 1 step
+MAPE(y_pred[1], y_true[1]+0.1)
+# 24 steps
+MAPE(y_pred[1:23], y_true[1:23]+0.1)
+# 168 steps
+MAPE(y_pred[1:length(y_pred)], y_true[1:length(y_true)]+0.1)
+
+
+
+#############
+
+y <- data$level[1:(nrow(data)-168)]
+y[4249:length(y)] <- NA
+
+mod1 <- SSModel(y/100 ~ 0 +
+                  SSMtrend(1, NA)+
+                  M2+
+                  S2+
+                  N2+
+                  K2+
+                  K1+
+                  O1+
+                  SA+
+                  P1,
+                H = NA,
+                data = data[1:(nrow(data)-168),])
+mod1$Q
+mod1$T
+mod1$Z
+mod1$P1inf <- mod1$P1inf * 0
+vary <- var(data$level[1:(nrow(data)-168)], na.rm = TRUE)
+diag(mod1$P1) <- log(vary)
+mod1$a1[1] <- mean(data$level[1:(nrow(data)-168)], na.rm = T)
+mod1$a1
+mod1$P1
+
+pars <- numeric(5)
+vary
+pars[1] <- log(vary/100)
+pars[2] <- log(vary/100)
+pars[3] <- log(vary/100)
+pars[4] <- log(vary/100)
+pars[5] <- log(0.01)
+exp(pars)
+dim(mod1$Q)
+
+updt <- function(pars, model) {
+  model$Q[1, 1, 1] <- exp(pars[1])
+  model$H[1, 1, 1] <- exp(pars[4])
+  model
+}
+fit1 <- fitSSM(mod1, pars, updt, control = list(maxit = 1000))
+fit1$optim.out$convergence
+
+smo1 <- KFS(fit1$model, smoothing = c("signal"))
+
+MAPE(smo1$muhat[4249]*100, data$level[4249]+0.1)
+MAPE(smo1$muhat[4249:(4249+23)]*100, data$level[4249:(4249+23)]+0.1)
+MAPE(smo1$muhat[4249:(4249+167)]*100, data$level[4249:(4249+167)]+0.1)
+
+
+
+
+
+
+
+
+##############
+
 data2 <- data[1:(nrow(data)-336),]
 mod2 <- SSModel(level/100 ~ 0+M2+
                   S2+
