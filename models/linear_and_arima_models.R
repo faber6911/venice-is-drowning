@@ -53,21 +53,24 @@ lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 # 
 # anyNA(data)
 # anyNA(lunar_motion)
-
-# p1 <- ggplot(aes(y = level, x = seq(1, 4248, 1)), data = data[74473:(nrow(data)-168),]) +
+# p1 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC")), data = data[74305:(nrow(data)-336),]) +
 #   geom_line() +
 #   theme_bw() +
-#   labs(x = "nobs", y = "level", title = "Linear models train set")
+#   labs(x = "datetime", y = "", title = "Linear models insample (06/2018 - 12/2018)")
+# p2 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC")), data = data[1:(nrow(data)-336),]) +
+#   geom_line() +
+#   theme_bw() +
+#   labs(x = "datetime", y = "level", title = "Machine learning insample (01/2010 - 12/2018)")
 # 
-# p2 <- ggplot(aes(y = level, x = seq(1, nrow(data)-168, 1)), data = data[1:(nrow(data)-168),]) +
-#   geom_line() +
-#   theme_bw() +
-#   labs(x = "nobs", y = "", title = "Machine learning train set")
-# p3 <- ggplot(aes(y = level, x = seq(1, 168, 1)), data = data[(nrow(data)-167):nrow(data),]) + 
-#   geom_line() + theme_bw() + labs(x = "nobs", y = "level", title = "Common test set")
+# label <- numeric(336)
+# label[1:167] <- 0
+# label[168:length(label)] <- 1
+# p3 <- ggplot(aes(y = level, x = as.POSIXct(datetime, tz = "UTC"), color = factor(label)), data = data[(nrow(data)-335):nrow(data),]) +
+#   geom_line() + theme_bw() + labs(x = "datetime", y = "level", title = "Common test set (17/12/2018 - 31/12/2018)") +
+#   scale_colour_manual(values=c("darkgrey", "darkred"), name = "", labels = c("validation", "test"))
 # 
 # jpeg("../report/imgs/train_test.jpg", width = 1200, height = 500, quality = 100)
-# (p1 | p2) / p3
+# (p2 | p1)/p3
 # dev.off()
 # 
 # jpeg("../report/imgs/data_plot.jpg", width = 600, height = 500, quality = 100)

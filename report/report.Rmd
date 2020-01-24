@@ -145,7 +145,7 @@ The second strategy instead, as anticipated, concerns the principal periodic com
 <div align="center">
 <figure>
 ```{r, out.width="60%"}
-shiny::includeHTML("components.html")
+shiny::includeHTML("imgs/components.html")
 ```
 <figcaption>Figure 7: Interactive filtering plot for the extracted components</figcaption>
 </figure>
