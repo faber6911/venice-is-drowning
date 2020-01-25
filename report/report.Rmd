@@ -97,6 +97,9 @@ Durante la fase di processing dei dati e prima di procedere all'effettiva realiz
 </center>
 <br>
 
+Fig.1 reports the entire time series, represented together with the autocorrelation and partial autocorrealtion plots. 
+Observing Fig.2, it is possible to notice how the tidal phenomenon seems to be characterized by a normal distribution. In such a case, it is worth noticing that from the analytic perspective the concepts of strict and weak stationarity are equivalent. 
+
 <!--
 In fig. 1 è possibile osservare la serie storica completa, rappresentata insieme ai plot di autocorrelazione ed autocorrelazione parziale, mentre in fig. 2 si può verificare come il fenomeno delle maree sembrerebbe distribuirsi seguendo una distribuzione normale. In questo caso, infatti, i concetti di stazionarietà debole e forte si equivalgono.
 -->
@@ -108,6 +111,8 @@ In fig. 1 è possibile osservare la serie storica completa, rappresentata insiem
 </figure>
 </center>
 <br>
+During the preliminary inspection of the historycal data, one of the investigations deals with  the mean and variance stationarity of the considered time series.
+Regarding the former,  Fig.1 suggests the series to be characterized by a stationary mean. This hypothesis is further proven by the output of the Augmented Dickey-Fuller test, confirming the in-mean stationarity of the tidal phenomenon.
 <!--
 Durante il lavoro di prima ispezione dei dati storici una delle verifiche effettuate ha riguardato la stazionarietà in media e quella in varianza: per quanto riguarda la prima osservando la serie in fig. 1 questa sembrerebbe effettivamente risultare stazionaria in media, per questa ragione per confermare l'ipotesi di stazionarietà in fig. 3 è riportato l'output di un test Augmented Dickey-Fuller che, come si vede, conferma a tutti gli effetti la stazionarietà in media del fenomeno mareale.
 -->
@@ -118,6 +123,9 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 </figure>
 </center>
 <br>
+On the other hand, the latter characteristics (stationary variance) can be verified observing Fig.4, where the daily average of the tidal level values are plotted against the daily aggregation of the standard deviation. 
+In particular, no clear trends emerges in such a plot, enforcing the conclusion that the plotted quantities are uncorrelated.
+
 <!--
 Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto.
 -->
@@ -129,6 +137,10 @@ Successivamente alla verifica della stazionarità in media si è proceduto a ver
 </center>
 <br>
 
+<!--FIXME: add a brief comment to Fig.5 
+i.e.: An initial inverstigation is performed by analyzing the main stagionalities of the time series by means of a Correlogram Plot, reported in Fig.5.
+
+but feel free to elaborate-->
 <center>
 <figure>
 ![Figure 5](imgs/periodogram.jpg)
@@ -139,14 +151,16 @@ Successivamente alla verifica della stazionarità in media si è proceduto a ver
 
 # Models
 
-As anticipated, the models created will focus on two areas, one more purely statistical with linear models such as ARIMA and UCM and the other of machine learning, through the definition of an LSTM model. The preparations and implementations of the models will be presented below and finally a section of results will be proposed in which it will be possible to make a rapid comparison between the performance of the models on a test set defined a priori. Referring to that, it is worth highlighting the data used for both areas:
+The produced models will focus on two areas, a purely statistical one with linear models such as ARIMA and UCM and a a machine learning approach, through the investigation of an LSTM model. 
+The preparation and implementation of the models will be presented below and a section of results, where it will be possible to make a rapid comparison between the performance of the models on a test set defined a priori, will be eventually proposed. 
+For the modelling approach, it is worth highlighting the different subsets of the whole dataset exploited for each one of the described areas:
 
 <!-- Come anticipato, i modelli realizzati vertono su due ambiti, uno più puramente statistico di modelli lineari ovvero ARIMA ed UCM e l'altro di machine learning, attraverso la definizione di un modello LSTM. Di seguito verranno presentati i preparativi e le implementazioni dei modelli ed infine verrà proposta una sezione di risultati in cui sarà possibile effettuare un rapido confronto tra le prestazioni dei modelli su un test set definito a priori. A questo proposito vale la pena di sottolineare i dati utilizzati per entrambi gli ambiti: -->
 
 * for the linear models the training set is composed by the last six months of 2018, from July to December;
-* for the machine learning one, considering the capacity of handle more data with constant computational time, the training set cover the period between January 2010 and December 2018.
+* for the machine learning approach, considering the capability of handling more data within a non-explosive  computational time, the training set covers the period between January 2010 and December 2018. 
 
-The test set, previously extracted, refer to the last two weeks of December 2018, i.e. from 17/12/2018 23:00:00 to 31/12/2019 23:00:00.
+The test set, previously extracted, is common among the different approaches and consists of the last two weeks of December 2018, i.e. from 17/12/2018 23:00:00 to 31/12/2019 23:00:00.
 
 <!-- * per i modelli lineari il training set consiste negli ultimi sei mesi del 2018, a partire da Luglio fino a Dicembre 2018; -->
 <!-- * per il modello machine learning, data la sua capacità di gestire moli di dati decisamente superiori a parità di tempo di computazione, come training set è stato utilizzato tutto il dataset a partire da Gennaio 2010 fino a Dicembre 2018. -->
@@ -160,12 +174,17 @@ The test set, previously extracted, refer to the last two weeks of December 2018
 </figure>
 </center>
 <br>
+<!--FIXME: got till here-->
 <!-- Entrambi i modelli lineari realizzati, come detto, utilizzano come training set i dati delle maree a partire dal 01/07/2018 00:00:00 fino al 24/12/2018 23:00:00. Questa scelta è stata guidata da esigenze di ottimizzazione dei tempi di *fitting* dei modelli poichè, selezionando più dati, si è riscontrato un importante dilatamento di questi. Sia ARIMA che UCM sono stati scritti in R, utilizzando a questo scopo i pacchetti *forecast* e *KFAS*. -->
 
-With reference to the linear models, two strategies are implemented: the former consist in integrate the meteorological variables with the lunar motion while the latter in extracting the principal periodic components exploiting *oce*, an R package that helps Oceanographers do their work by providing functions to read Oceanographic data files.
+Concerning the linear models, two strategies are considered: the former consists of integrating the meteorological variables and the lunar motion in the main analysis, while the latter is based on performing a sort of harmonic analysis by re-using some of the most common principal periodic components  previously extracted from other studies in the field. 
+<!-- FIXME: add ref to the survey on tidal prediction strategies and add [1] as ref. -->
+The adaptation of such components to our series is done exploiting *oce*, an R package that helps Oceanographers with their work by providing utils to investigate and elaborate Oceanographic data files.
+
+<!-- FIXME: this part should be elaborated in the dataset section in order to introduce the dataset "lunar motion".
 
 Regarding the first strategy, after processing the meteorological data as previously mentioned, using the API *PyEphem*, an astronomy library that provides basic astronomical computations for the Python programming language. Given a date and location on the Earth’s surface, it can compute the positions of the Sun and Moon, of the planets and their moons, and of any asteroids, comets, or earth satellites whose orbital elements the user can provide. In order to track the lunar motion all we have to do is to select the period of interest and the coordinates representing Venice.
-
+-->
 <div align="center">
 <figure>
 ```{r lunar_motion, out.width="60%", tidy=TRUE}
@@ -175,7 +194,9 @@ shiny::includeHTML("imgs/test.html")
 </figure>
 </div>
 <br>
-The second strategy instead, as anticipated, concerns the principal periodic components extractable from a time series about sea levels in order to be used as regressors for the tides level time serie. The *oce* package provide a function called *tidem* able to fit a model in terms of sine and cosine components at the indicated tidal frequencies, with the amplitude and phase being calculated from the resultant coefficients on the sine and cosine terms. *Tidem* provides the possibility to extract till 69 components but we focused on 8 of them, in particular:
+The second strategy instead, as anticipated, concerns the extraction of principal periodic components  from a time series about sea levels commonly treated in literature, and the re-using of those components as regressors for the tides level time series of Venice. 
+The *oce* package provide a function called *tidem* able to fit a model in terms of sine and cosine components at the indicated tidal frequencies, with the amplitude and phase being calculated from the resultant coefficients on the sine and cosine terms. 
+*Tidem* provides the possibility to "adapt" up to 69 components but we focused on 8 of them, in particular:
 
 * M2, main lunar semi-diurnal with a period of ~12 hours;
 * S2, main solar semi-diurnal (~12 hours);
@@ -197,17 +218,18 @@ shiny::includeHTML("imgs/components.html")
 
 ## ARIMA
 
-Both the realized linear models use the data between 25/06/2018 00:00:00 and 17/12/2018 23:00:00 as training set. This choice was determined by the needs of optimizing the models' fitting time because, taking more data, there was an important temporal expansion. Both ARIMA and UCM are programmed using R, in particular with *forecast* and *KFAS* packages.
+Both the realized linear models use the data between 25/06/2018 00:00:00 and 17/12/2018 23:00:00 as training set. This choice is determined by the needs of optimizing the models' fitting time because, taking more data, there would have been an important computational-time explosion. 
+Both ARIMA and UCM are implemented in R, in particular with *forecast* and *KFAS* packages.
 
-As first approach to the forecast task we trained two ARIMA models: the former is trained using as regressors the meteorological data provided by ARPA Veneto with the lunar motion obtained using *PyEPhem* while the latter using the 8 harmonics from the use of *oce* and *tidem*.
+As a first approach to the forecast task we trained two ARIMA models: the former is trained using as regressors the meteorological data provided by ARPA Veneto with the lunar motion obtained using *PyEPhem* while the latter using the 8 harmonics from  *oce* and *tidem*.
 
-Starting from the first model created it's worth to notice that the meteorological data have been standardized and the lunar motion, as seen in literature, is taken with the following form:
+Starting from the first model, it's worth to notice that the meteorological data have been standardized and the lunar motion is elaborated in the following form, recalling the general shape of the grativational potential (proportional to the inverse of the squared distance):
 
 \begin{equation}
 lunar\_var = \frac{1}{lunar\_motion^2}
 \end{equation}
 
-The first impact of the variables is substantially insignificant as is possible to see in fig. 9, the correlations and the partial correlations mantain their magnitude and the fitting on the training data is weak.
+The first impact of the variable is substantially insignificant as is possible to observe in Fig.9: the correlations and the partial correlations mantain their magnitude and the fitting on the training data is weak.
 
 <center>
 <figure>
@@ -217,7 +239,10 @@ The first impact of the variables is substantially insignificant as is possible 
 </center>
 <br>
 
-After several attemps, following the represented Lag on ACF and PACF plots in combination with the value of the AICc and the Mean Absolute Percentage Error (MAPE), a highly parameterized model has been reached with the form (3,1,3)(1,1,3)[24]. Although the autocorrelation has not been completely absorbed, the Box-Ljung test indicates that it is no longer present for the first few hours. The fitting on the training set also improves considerably and the performance on the test proves to be quite good as will be illustrated below. The autocorrelation and the fitting performances are visible in fig. 10.
+After several attemps, following the represented Lag on ACF and PACF plots in combination with the value of the AICc and the Mean Absolute Percentage Error (MAPE), a highly parameterized model has been reached with the form (3,1,3)(1,1,3)[24]. 
+Although the autocorrelation has not been completely absorbed, the Box-Ljung test indicates that it is no longer relevant for the first few hours. 
+The fitting on the training set also improves considerably and the performance on the test proves to be quite good as it will be illustrated below. 
+The autocorrelation and the fitting performances are visible in Fig.10.
 
 <center>
 <figure>
