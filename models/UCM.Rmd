@@ -1,0 +1,146 @@
+---
+title: "Venice is drowning - UCM model"
+date: "`r Sys.Date()`"
+author: "Dario Bertazioli, Fabrizio D'Intinosante"
+output:
+  rmdformats::readthedown:
+    highlight: kate
+---
+
+
+```{r knitr_init, echo=FALSE, cache=FALSE}
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=FALSE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+opts_knit$set(width=75)
+```
+
+
+```{r packages and function, echo=FALSE}
+library(xts)
+library(lubridate)
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(forecast)
+library(tseries)
+library(MLmetrics)
+library(urca)
+library(Hmisc)
+library(plotly)
+library(TSA)
+library(oce)
+library(SWMPr)
+library(KFAS)
+
+
+acfpacf <- function(x, max.lag=36){
+  require(forecast)
+  require(ggplot2)
+  par(mfrow = c(2,1))
+  ggAcf(x, max.lag)
+  ggPacf(x, max.lag)
+  par(mfrow = c(1,1))
+}
+
+```
+
+# Overview
+
+Come seconda parte del progetto, dopo aver provveduto ad effettuare costruzione di modelli ARIMA per la predizione della serie storica riguardante le maree, provvediamo a realizzare un Unobsserved Component Model (UCM).
+
+# Preparazione dei dati
+
+Provvediamo a caricare i dati:
+
+```{r import data, echo=T}
+data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
+lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
+data$l_motion <- 1/lunar_motion$dists.Km.^2
+```
+
+Dopo aver importato i dati provvediamo, per mezzo del pacchetto *oce*, ad estrarre le 8 armoniche già utilizzate per la parte relativa ai modelli ARIMA dalla nostra serie:
+
+```{r harmonics, echo=T, fig.align="center"}
+datsl <- as.sealevel(data$level/100)
+constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'SA', 'P1')
+preds <- sapply(constituents, function(x){
+  
+  mod <- tidem(t = datsl, constituent = x)
+  pred <- predict(mod)
+  pred - mean(pred)
+  
+}) 
+predall <- rowSums(preds) + mean(datsl[['elevation']])
+preds <- data.frame(time = datsl[['time']], preds, Estimated = predall) 
+
+data$M2 <- preds$M2
+data$S2 <- preds$S2
+data$N2 <- preds$N2
+data$K2 <- preds$K2
+data$K1 <- preds$K1
+data$O1 <- preds$O1
+data$SA <- preds$SA
+data$P1 <- preds$P1
+
+plot.ts(preds[1:168,], main = "harmonics with length 168")
+```
+
+A questo punto limitiamo i dati al nostro intervallo di interesse:
+
+```{r subset, echo=T}
+data <- data[74305:nrow(data),]
+```
+
+# Modello UCM
+
+Dopo numerose prove, il modello che sembra performare al meglio è uno composto essenzialmente dalle armoniche inserite direttamente come componenti del modello, insieme ad una componente trend del tipo Random Walk. Sembrerebbe infatti che le armoniche risultino sufficienti a spiegare i moti stagionali all'interno della serie storica. Vale la pena di sottolineare che prima della realizzazione di questo report sono stati tentati approcci anche con ulteriori componenti stagionali, sia *dummy* che *trigonometriche*, e differenti manifestazioni della componente trend come *Local Linear Trend* e *Integrated Random Walk* ma tutti questi hanno dimostrato performance peggiori nella fase di previsione.
+
+Partiamo definendo quindi la struttura del modello:
+
+```{r model structure, echo=T}
+mod1 <- SSModel(level/100 ~ 0 +
+                  SSMtrend(1, NA)+
+                  M2+
+                  S2+
+                  N2+
+                  K2+
+                  K1+
+                  O1+
+                  SA+
+                  P1,
+                H = NA,
+                data = data[1:(nrow(data)-336),])
+```
+
+e controlliamo la struttura della matrici che lo compongono:
+
+```{r matrices, echo=TRUE}
+mod1$Q
+mod1$T
+```
+
+Procediamo quindi ad applicare una serie di correzioni; imponiamo ad esempio che le condizioni iniziali non siano diffuse, aggiungiamo il valore medio iniziale per il trend e la varianza iniziale per le componenti
+
+```{r initial conditions, echo=T}
+mod1$P1inf <- mod1$P1inf * 0
+vary <- var(data$level[1:(nrow(data)-336)], na.rm = TRUE)
+diag(mod1$P1) <- log(vary)
+mod1$a1[9] <- mean(data$level[1:(nrow(data)-336)], na.rm = T)
+```
+
+Definiamo una update function custom, pur non essendocene bisogno poichè quella di default dovrebbe funzionare ugualmente avendo soltanto la varianza del Random Walk e quella dell'errore da ottimizzare ma avendo tentato molti approcci diversi con componenti che richiedevano la sua definizione abbiamo deciso di mantenerla
+
+```{r updt function, echo=T}
+
+```
+
