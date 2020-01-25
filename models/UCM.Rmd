@@ -54,6 +54,13 @@ acfpacf <- function(x, max.lag=36){
 
 ```
 
+<style>
+body{
+text-align:justify
+}
+</style>
+
+
 # Overview
 
 Come seconda parte del progetto, dopo aver provveduto ad effettuare costruzione di modelli ARIMA per la predizione della serie storica riguardante le maree, provvediamo a realizzare un Unobsserved Component Model (UCM).

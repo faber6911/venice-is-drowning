@@ -1527,6 +1527,11 @@ $(document).ready(function () {
 </div>
 
 <div id="main">
+<style>
+body{
+text-align:justify
+}
+</style>
 <div id="overview" class="section level1">
 <h1>Overview</h1>
 <p>Come seconda parte del progetto, dopo aver provveduto ad effettuare costruzione di modelli ARIMA per la predizione della serie storica riguardante le maree, provvediamo a realizzare un Unobsserved Component Model (UCM).</p>
@@ -1598,6 +1603,12 @@ K1     0  0  0  0  1  0  0  0     0
 O1     0  0  0  0  0  1  0  0     0
 SA     0  0  0  0  0  0  1  0     0
 P1     0  0  0  0  0  0  0  1     0</code></pre>
+<p>Procediamo quindi ad applicare una serie di correzioni; imponiamo ad esempio che le condizioni iniziali non siano diffuse, aggiungiamo il valore medio iniziale per il trend e la varianza iniziale per le componenti</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><a class="sourceLine" id="cb9-1" title="1">mod1<span class="op">$</span>P1inf &lt;-<span class="st"> </span>mod1<span class="op">$</span>P1inf <span class="op">*</span><span class="st"> </span><span class="dv">0</span></a>
+<a class="sourceLine" id="cb9-2" title="2">vary &lt;-<span class="st"> </span><span class="kw">var</span>(data<span class="op">$</span>level[<span class="dv">1</span><span class="op">:</span>(<span class="kw">nrow</span>(data)<span class="op">-</span><span class="dv">336</span>)], <span class="dt">na.rm =</span> <span class="ot">TRUE</span>)</a>
+<a class="sourceLine" id="cb9-3" title="3"><span class="kw">diag</span>(mod1<span class="op">$</span>P1) &lt;-<span class="st"> </span><span class="kw">log</span>(vary)</a>
+<a class="sourceLine" id="cb9-4" title="4">mod1<span class="op">$</span>a1[<span class="dv">9</span>] &lt;-<span class="st"> </span><span class="kw">mean</span>(data<span class="op">$</span>level[<span class="dv">1</span><span class="op">:</span>(<span class="kw">nrow</span>(data)<span class="op">-</span><span class="dv">336</span>)], <span class="dt">na.rm =</span> T)</a></code></pre></div>
+<p>Definiamo una update function custom, pur non essendocene bisogno poichè quella di default dovrebbe funzionare ugualmente avendo soltanto la varianza del Random Walk e quella dell’errore da ottimizzare ma avendo tentato molti approcci diversi con componenti che richiedevano la sua definizione abbiamo deciso di mantenerla</p>
 </div>
 </div>
 
