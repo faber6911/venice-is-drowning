@@ -91,7 +91,7 @@ Durante la fase di processing dei dati e prima di procedere all'effettiva realiz
 
 <center>
 <figure>
-![fig 1: Visualizzazione della serie storica con relativi plot di autocorrelazione](imgs/data_plot.jpg)
+![Figure 1](imgs/data_plot.jpg)
 <figcaption>Figure 1: Time serie visualization with autocorrelation and partial autocorrelation plots</figcaption>
 </figure>
 </center>
@@ -103,7 +103,7 @@ In fig. 1 è possibile osservare la serie storica completa, rappresentata insiem
 
 <center>
 <figure>
-![distribuzione](imgs/distribution.jpg)
+![Figure 2](imgs/distribution.jpg)
 <figcaption>Figure 2: Time serie distribution</figcaption>
 </figure>
 </center>
@@ -113,7 +113,7 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 -->
 <center>
 <figure>
-![fig 3: Output augmented Dickey-Fuller test](imgs/adf_test.PNG)
+![Figure 3](imgs/adf_test.PNG)
 <figcaption>Figure 3: output test ADF</figcaption>
 </figure>
 </center>
@@ -123,8 +123,16 @@ Successivamente alla verifica della stazionarità in media si è proceduto a ver
 -->
 <center>
 <figure>
-![fig 4: variance stationary](imgs/var_stationary.jpg)
+![Figure 4](imgs/var_stationary.jpg)
 <figcaption>Figure 4: Visualization of stationarity in variance</figcaption>
+</figure>
+</center>
+<br>
+
+<center>
+<figure>
+![Figure 5](imgs/periodogram.jpg)
+<figcaption>Figure 5: Frequency visualization using periodogram</figcaption>
 </figure>
 </center>
 <br>
@@ -138,7 +146,7 @@ As anticipated, the models created will focus on two areas, one more purely stat
 * for the linear models the training set is composed by the last six months of 2018, from July to December;
 * for the machine learning one, considering the capacity of handle more data with constant computational time, the training set cover the period between January 2010 and December 2018.
 
-The test set, previously extracted, refer to the last week of December 2018, i.e. from 24/12/2018 23:00:00 to 31/12/2019 23:00:00.
+The test set, previously extracted, refer to the last two weeks of December 2018, i.e. from 17/12/2018 23:00:00 to 31/12/2019 23:00:00.
 
 <!-- * per i modelli lineari il training set consiste negli ultimi sei mesi del 2018, a partire da Luglio fino a Dicembre 2018; -->
 <!-- * per il modello machine learning, data la sua capacità di gestire moli di dati decisamente superiori a parità di tempo di computazione, come training set è stato utilizzato tutto il dataset a partire da Gennaio 2010 fino a Dicembre 2018. -->
@@ -147,8 +155,8 @@ The test set, previously extracted, refer to the last week of December 2018, i.e
 
 <center>
 <figure>
-![Figure 5](imgs/train_test.jpg)
-<figcaption>Figure 5: Train and test data representation</figcaption>
+![Figure 6](imgs/train_test.jpg)
+<figcaption>Figure 6: Train and test data representation</figcaption>
 </figure>
 </center>
 <br>
@@ -163,7 +171,7 @@ Regarding the first strategy, after processing the meteorological data as previo
 ```{r out.width="60%", tidy=TRUE}
 shiny::includeHTML("imgs/test.html")
 ```
-<figcaption>Figure 6: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
+<figcaption>Figure 7: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
 </figure>
 </div>
 <br>
@@ -183,15 +191,51 @@ The second strategy instead, as anticipated, concerns the principal periodic com
 ```{r, out.width="60%"}
 shiny::includeHTML("imgs/components.html")
 ```
-<figcaption>Figure 7: Interactive filtering plot for the extracted components</figcaption>
+<figcaption>Figure 8: Interactive filtering plot for the extracted components</figcaption>
 </figure>
 </div>
 
 ## ARIMA
 
-Both the realized linear models use the data between 01/07/2018 00:00:00 and 24/12/2018 23:00:00 as training set. This choice was determined by the needs of optimizing the models' fitting time because, taking more data, there was an important temporal expansion. Both ARIMA and UCM are programmed using R, in particular with *forecast* and *KFAS* packages.
+Both the realized linear models use the data between 25/06/2018 00:00:00 and 17/12/2018 23:00:00 as training set. This choice was determined by the needs of optimizing the models' fitting time because, taking more data, there was an important temporal expansion. Both ARIMA and UCM are programmed using R, in particular with *forecast* and *KFAS* packages.
 
-As first approach to the forecast task we trained two ARIMA models: the first is trained using as regressors the meteoro
+As first approach to the forecast task we trained two ARIMA models: the former is trained using as regressors the meteorological data provided by ARPA Veneto with the lunar motion obtained using *PyEPhem* while the latter using the 8 harmonics from the use of *oce* and *tidem*.
+
+Starting from the first model created it's worth to notice that the meteorological data have been standardized and the lunar motion, as seen in literature, is taken with the following form:
+
+\begin{equation}
+lunar\_var = \frac{1}{lunar\_motion^2}
+\end{equation}
+
+The first impact of the variables is substantially insignificant as is possible to see in fig. 9, the correlations and the partial correlations mantain their magnitude and the fitting on the training data is weak.
+
+<center>
+<figure>
+![Figure 9](imgs/ar1_1.jpg)
+<figcaption>Figure 9: First output from ARIMA 1</figcaption>
+</figure>
+</center>
+<br>
+
+After several attemps, following the represented Lag on ACF and PACF plots in combination with the value of the AICc and the Mean Absolute Percentage Error (MAPE), a highly parameterized model has been reached with the form (3,1,3)(1,1,3)[24]. Although the autocorrelation has not been completely absorbed, the Box-Ljung test indicates that it is no longer present for the first few hours. The fitting on the training set also improves considerably and the performance on the test proves to be quite good as will be illustrated below. The autocorrelation and the fitting performances are visible in fig. 10.
+
+<center>
+<figure>
+![Figure 10](imgs/ar1_2_acfpacf.jpg)
+![Figure 10b](imgs/ar1_2_fit.jpg)
+<figcaption>Figure 10: Final output from ARIMA 1</figcaption>
+</figure>
+</center>
+<br>
+As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average.
+
+<center>
+<figure>
+![Figure 11](imgs/ar2_1.jpg)
+<figcaption>Figure 11: Final output from ARIMA 1</figcaption>
+</figure>
+</center>
+<br>
 
 ## UCM
 
