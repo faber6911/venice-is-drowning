@@ -2,3 +2,5 @@ base
 knitr
 rmdformats
 shiny
+RevoUtilsMath
+RevoUtils

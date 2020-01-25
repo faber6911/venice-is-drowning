@@ -81,6 +81,7 @@ As a precise choice, due to time-related and computational reasons, only the dat
 <!--
 Come scelta progettuale, si è deciso in fase di processing dei dati di limitare l'utilizzo di questi al periodo tra Gennaio 2010 e Dicembre 2018.
 -->
+
 # Data inspection
 
 During the preprocessing phase, some descriptive visualizations regarding the main time series are produced in order to inspect its characteristics.  
@@ -160,7 +161,7 @@ Regarding the first strategy, after processing the meteorological data as previo
 <div align="center">
 <figure>
 ```{r out.width="60%", tidy=TRUE}
-#shiny::includeHTML("imgs/test.html")
+shiny::includeHTML("imgs/test.html")
 ```
 <figcaption>Figure 6: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
 </figure>
