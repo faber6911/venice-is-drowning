@@ -168,7 +168,7 @@ Regarding the first strategy, after processing the meteorological data as previo
 
 <div align="center">
 <figure>
-```{r out.width="60%", tidy=TRUE}
+```{r lunar_motion, out.width="60%", tidy=TRUE}
 shiny::includeHTML("imgs/test.html")
 ```
 <figcaption>Figure 7: Interactive plot representing lunar motion between 2010 and 2018</figcaption>
@@ -188,7 +188,7 @@ The second strategy instead, as anticipated, concerns the principal periodic com
 
 <div align="center">
 <figure>
-```{r, out.width="60%"}
+```{r components, out.width="60%"}
 shiny::includeHTML("imgs/components.html")
 ```
 <figcaption>Figure 8: Interactive filtering plot for the extracted components</figcaption>
@@ -232,7 +232,16 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 <center>
 <figure>
 ![Figure 11](imgs/ar2_1.jpg)
-<figcaption>Figure 11: Final output from ARIMA 1</figcaption>
+<figcaption>Figure 11: Initial output from ARIMA 2</figcaption>
+</figure>
+</center>
+<br>
+
+<center>
+<figure>
+![Figure 12](imgs/ar2_2_acfpacf.jpg)
+![Figure 12b](imgs/ar2_2_fit.jpg)
+<figcaption>Figure 12: Final output from ARIMA 2</figcaption>
 </figure>
 </center>
 <br>
@@ -242,3 +251,17 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 ## LSTM
 
 Inserire qui procedimento svolto LSTM
+
+# Results
+
+<div align="center">
+<figure>
+```{r results, out.width="60%"}
+shiny::includeHTML("results.html")
+```
+<figcaption>Figure X:</figcaption>
+</figure>
+</div>
+
+
+# Conclusions

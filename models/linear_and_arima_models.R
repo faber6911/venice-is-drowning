@@ -615,13 +615,15 @@ mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg[1:4248,,drop=F],
                  , list(order = c(1,0,0), period = 24))
 
 summary(mod2_ar)
+acfpacf(mod2_ar$residuals)
 p1 <- ggplot.corr(mod2_ar$residuals, lag.max = 100, large.sample.size = T, horizontal = T)
 p1
 acfpacf(mod2_ar$residuals, max.lag = 72)
 #ggplotly(autoplot(ts(mod2_ar$residuals)))
 #ggplotly(autoplot(ts(trn$level)))
 p2 <- autoplot(ts(trn$level/100), series = "real") +theme_bw()+labs(y="level")+ autolayer(mod2_ar$fitted, series = "fitted")
-#jpeg("../report/imgs/ar2_1.jpg", width = 600, height = 300, quality = 100)
+p2
+#jpeg("../report/imgs/ar2_2_fit.jpg", width = 600, height = 150, quality = 100)
 p1/p2
 #dev.off()
 
