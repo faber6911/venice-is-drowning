@@ -282,9 +282,66 @@ In this sense it is possible once again to understand how much harmonics can con
 
 ## LSTM
 
-Inserire qui procedimento svolto LSTM
+FIXME: forse in effetti aveva senso dividere inizialmente tra "LINEAR MODELS" e "MACHINE LEARNING MODELS", così poi la mia ulteriore sottodivisione ha più zenzo. To be discussed with @Fabriwikam
+
+### General Approach
+
+While approaching the problem under a machine-learning based perspective, one of the most important steps is the formalization of the problem. The time series prediction is modelled in such a way to transform the problem in a purely supervised classification problem: 
+
+- the whole time series is re-shaped into a series of non overlapping windows, containing a fixed number of chronologically adhiacent observations,
+- each of those slices is treated as a set of input features (equivalent to a record/row in a common dataset) for a classification problem
+- for each window, a classifier predicts the i-th observation after the last input feature.
+
+In particular, coherently with the procedure of the linear models, one step (one hour), 24 steps and 168 steps ahead predictions are performed.
+
+Another slightly different approach would consist in a multi-output prediction (feasible i.e. when experimenting with Neural Networks), where for each window given as input to the classifier, another window of target elements is produced. We tested this approach with output slices having dimensions 12, 24 and 168 (i.e. forecasting half a day, a whole day, or an entire week in the same execturion), but the results were not particularly satisfying (not comparable in a quantitative way with those provided by the linear models). 
+The mentioned multi-output approach would probably lead to interesting results when dealing with a vast amount of training data (whereas it is worth to recall that, mainly due to computational reasons, we reduced the total amount of available observation down to few years.).
+We, therefore, decided to executed and to report "direct" predictions with a single output.
+
+Regarding the input features, two different strategies has been followed:
+
+- a only-auto-regressive approach, where the model inputs consist exclusively of the past history of the time series (the already-mentioned sliding windows)
+
+- a mixed approach, where the same previously-described sliding window procedure is applied to the weather time series and to the harmonics components, generating an overall input set composed by autoregressive features (the lagged windows) and those features.
+
+A proper training set and a one-week validation set are extracted from the selected data, whereas the last week is hold as a totally independent test set. 
+The information about the test-set is never exploited during the definition and the training of any model.
+
+## ML Models
+
+Attempting to deal with the aforementioned classification task, several machine learning models are initially tested over 24-steps ahead forecasting with 24-sized input windows: in particular, a Random Forest classifier, a GRU and an LSTM model (implemented with the same overall "architecture") are briefly implemented, in order to compare the overall performances, reported in table FIXME: add table.
+The GRU and LSTM performances were similar at a first sight, whereas the classic machine learning classifier seems not to be able to stand in the comparison.
+
+Therefore, further testing and a systematic evaluation of performances is carried out on the LSTM model, whose architecture is reported in the few lines of code in Fig. FIXME: add model figure.
+
+
+## Training and Evalutaion Procedure
+
+Three versions of the selected model is trained over each different prediction step with a common training schedule: the number of epochs is set to 250, with a batch size equals to 256, and Early Stopping is applied, monitoring the (non-)variation of the validation loss, in order to avoid the overfitting. 
+For counter-balancing the high model complexity, which would lead to overfit the training set, an intensive use of dropout is exploited during the training phase.
+For regularizing the training over the last epochs, a learning rate scheduler is implemented, reducing the learning rate when variation over the validation loss starts to indicate signs of learning instability.
+We could typically observe a couple of learning rate reduction (of a factor 0.5x) and the Early Stopping mechanism becoming active after ~100 epochs.
+The minimized loss is chosen to be the Mean Squared Error, but analogous results are obtained while testing mean absolute error and mean absolute percentage error as loss functions.
+
+An important hyper-parameter to be carefully chosen for this kind of classification problem is the dimension of the slicing performed over the time series, i.e. the number of input features to be considered.
+
+After some experiments, we choose to use the following window sizes (WS):
+
+- WS = 2 for the 1-step ahead forecast
+- WS = 24 for the 24-steps ahead forecast
+- WS = 168 for the 168-steps ahead forecast.
+
+Regarding the model evaluation phase, for each model produced (i.e. for each "n" in the n-step ahead predictions), the model performances are evaluated with three different metrics: "mse", "mae", and "mape".
+Three different evaluation "schedules" are applied:  we choose to report the *one-shot prediction* error, the "*iterated-over-real-values*" error, and the "*iterated-over-predicted-values*" error.
+The first type of metric consists in simply taking the error made while predicting the first observation of the test set. In the second kind of evaluation, we average the error over each predicted observation of the dataset, taking the "real" levels from the test set as input for the LSTM classifier, as would be natural to do dealing with Neural Networks.
+The last modality emulates the predictions performed by linear models, and consists of taking the average error over each prediction in the test set having the previously predicted values as inputs (this evaluation is not performed for the 168-steps ahead forecast, since the test set only consists of one week).
+Fig. FIXME: add figure reports an example of the 24-steps ahead model fitting over the test set. One can observe how the "iterated-real" and the "iterated-pred" prediction types provides similar results in the first steps and diverging ones after a certain amount of iterations. This behaviour is expected, considering the cumulation of prediction errors leading to the flattening of the prediction line towards the mean of the time series.
 
 # Results
+
+The results of the described evaluation process are directly reported in table #FIXME: add table, and also visualized in the interactive Fig.FIXME: add fig. num.
+
+In particular, with "LSTM1" we intend the class of LSTM models taking as input the first type of features (autoregressive-only) described in the previous paragraph, whereas "LSTM2" refers to the mixed-input features approach.
 
 <div align="center">
 <figure>
