@@ -50,7 +50,12 @@ Two datasets are the basis for the project pipeline:
 
 <!-- I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019. -->
 
+
 The tides level dataset is composed using the single historical datasets made public by the city of Venice, in particular from [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). The data regarding the meteorological variables, instead have been provided, on request, by [ARPA Veneto](https://www.arpa.veneto.it/). 
+
+Considering that one of the main cause of the tidal phenomena is known to be the lunar gravitational potential acting over the seas on earth, an attempt was made in order to explicitly introduce in the model the physics of the system through the creation of an ad-hoc time series containing the distance between Venice and the Moon (i.e. the radius of the gravitational interaction). Therefore, we firstly reproduced the approximate solution of the (differential) motion equation governing the lunar motion around the earth (as a Sun-Earth-Moon three body problem) presented in the great book "Newtonian Dynamics" by Richard Fitzpatrick, obtaining a quite precise analytical description of the aforementioned interaction radius, calculated with respect to the center of the earch, as a function of time.
+Then, in order to access more precise solutions, and for the sake of simplicity and re-using fashion' we exploited the API *PyEphem*, an astronomy library that provides basic astronomical computations for the Python programming language: the objective distance is obtained from the API which internally perform a 4th order RK integration and triangulate the distance with respect to the observer position (Venice in this case).
+In summary, the "*lunar motion*" time series, consisting of the distance between Venice and the Moon as a function of time, is obtained for further testing's sake.
 
 All the preprocessing operations regarding parsing, inspection and the final union of the cited datasets are available in the following scripts:
 
@@ -178,14 +183,9 @@ The test set, previously extracted, is common among the different approaches and
 <!--FIXME: got till here-->
 <!-- Entrambi i modelli lineari realizzati, come detto, utilizzano come training set i dati delle maree a partire dal 01/07/2018 00:00:00 fino al 24/12/2018 23:00:00. Questa scelta è stata guidata da esigenze di ottimizzazione dei tempi di *fitting* dei modelli poichè, selezionando più dati, si è riscontrato un importante dilatamento di questi. Sia ARIMA che UCM sono stati scritti in R, utilizzando a questo scopo i pacchetti *forecast* e *KFAS*. -->
 
-Concerning the linear models, two strategies are considered: the former consists of integrating the meteorological variables and the lunar motion in the main analysis, while the latter is based on performing a sort of harmonic analysis by re-using some of the most common principal periodic components  previously extracted from other studies in the field. 
-<!-- FIXME: add ref to the survey on tidal prediction strategies and add [1] as ref. -->
+Concerning the linear models, two strategies are considered: the former consists of integrating the meteorological variables and the lunar motion -visualized in Fig.7- in the main analysis, while the latter is based on performing a sort of harmonic analysis by re-using some of the most common principal periodic components  previously extracted from other studies in the field (i.e. see Consoli et all, 2014 and Abubakar et all, 2019). 
 The adaptation of such components to our series is done exploiting *oce*, an R package that helps Oceanographers with their work by providing utils to investigate and elaborate Oceanographic data files.
 
-<!-- FIXME: this part should be elaborated in the dataset section in order to introduce the dataset "lunar motion".
-
-Regarding the first strategy, after processing the meteorological data as previously mentioned, using the API *PyEphem*, an astronomy library that provides basic astronomical computations for the Python programming language. Given a date and location on the Earth’s surface, it can compute the positions of the Sun and Moon, of the planets and their moons, and of any asteroids, comets, or earth satellites whose orbital elements the user can provide. In order to track the lunar motion all we have to do is to select the period of interest and the coordinates representing Venice.
--->
 <div align="center">
 <figure>
 ```{r lunar_motion, out.width="60%", tidy=TRUE}
@@ -309,19 +309,31 @@ The information about the test-set is never exploited during the definition and 
 
 ## ML Models
 
-Attempting to deal with the aforementioned classification task, several machine learning models are initially tested over 24-steps ahead forecasting with 24-sized input windows: in particular, a Random Forest classifier, a GRU and an LSTM model (implemented with the same overall "architecture") are briefly implemented, in order to compare the overall performances, reported in table FIXME: add table.
+Attempting to deal with the aforementioned classification task, several machine learning models are initially tested over 24-steps ahead forecasting with 24-sized input windows. The machine learning approach is implemented in Python, with the Keras API to TensorFlow.
+In particular, a Random Forest classifier, a GRU and an LSTM model (implemented with the same overall "architecture") are briefly implemented, in order to compare the overall performances, reported in table 1.
+
+![](imgs/init_comparison.png){width=100%}
+
 The GRU and LSTM performances were similar at a first sight, whereas the classic machine learning classifier seems not to be able to stand in the comparison.
 
-Therefore, further testing and a systematic evaluation of performances is carried out on the LSTM model, whose architecture is reported in the few lines of code in Fig. FIXME: add model figure.
+Therefore, further testing and a systematic evaluation of performances is carried out on the LSTM model, whose architecture is reported in the few lines of code in Fig.13.
 
+<center>
+<figure>
+![](imgs/lstm_model.png){width=90%}
+<figcaption>Figure 13: Screenshot of the LSTM model implementation. </figcaption>
+</figure>
+</center>
+<br>
 
 ## Training and Evalutaion Procedure
 
 Three versions of the selected model is trained over each different prediction step with a common training schedule: the number of epochs is set to 250, with a batch size equals to 256, and Early Stopping is applied, monitoring the (non-)variation of the validation loss, in order to avoid the overfitting. 
 For counter-balancing the high model complexity, which would lead to overfit the training set, an intensive use of dropout is exploited during the training phase.
 For regularizing the training over the last epochs, a learning rate scheduler is implemented, reducing the learning rate when variation over the validation loss starts to indicate signs of learning instability.
-We could typically observe a couple of learning rate reduction (of a factor 0.5x) and the Early Stopping mechanism becoming active after ~100 epochs.
+We could typically observe a couple of learning rate reduction (of a factor 0.5x) and the Early Stopping mechanism becoming active after ~100 epochs. 
 The minimized loss is chosen to be the Mean Squared Error, but analogous results are obtained while testing mean absolute error and mean absolute percentage error as loss functions.
+Some (possibly non-exhaustive) examples of training plots are visible at the following link: https://app.wandb.ai/dbertazioli/venice_is_drowing.
 
 An important hyper-parameter to be carefully chosen for this kind of classification problem is the dimension of the slicing performed over the time series, i.e. the number of input features to be considered.
 
@@ -335,13 +347,30 @@ Regarding the model evaluation phase, for each model produced (i.e. for each "n"
 Three different evaluation "schedules" are applied:  we choose to report the *one-shot prediction* error, the "*iterated-over-real-values*" error, and the "*iterated-over-predicted-values*" error.
 The first type of metric consists in simply taking the error made while predicting the first observation of the test set. In the second kind of evaluation, we average the error over each predicted observation of the dataset, taking the "real" levels from the test set as input for the LSTM classifier, as would be natural to do dealing with Neural Networks.
 The last modality emulates the predictions performed by linear models, and consists of taking the average error over each prediction in the test set having the previously predicted values as inputs (this evaluation is not performed for the 168-steps ahead forecast, since the test set only consists of one week).
-Fig. FIXME: add figure reports an example of the 24-steps ahead model fitting over the test set. One can observe how the "iterated-real" and the "iterated-pred" prediction types provides similar results in the first steps and diverging ones after a certain amount of iterations. This behaviour is expected, considering the cumulation of prediction errors leading to the flattening of the prediction line towards the mean of the time series.
+
+<center>
+<figure>
+![Figure 14](imgs/fit_example_lstm.png){width=60%}
+<figcaption>Figure 14: Example of fitting in the 24-steps ahead LSTM predictions on the test set. The green line corresponds to the real observations, the blue line corresponds to the predictions iterated over the real observed values, and the orange line refers to the preditions iterated over previously-predicted values (in a linear-model fashion). </figcaption>
+</figure>
+</center>
+<br>
+
+Fig.14 reports an example of the 24-steps ahead model fitting over the test set. 
+One can observe how the "iterated-real" and the "iterated-pred" prediction types provides similar results in the first steps and diverging ones after a certain amount of iterations. This behaviour is expected, considering the cumulation of prediction errors leading to the flattening of the prediction line towards the mean of the time series.
 
 # Results
 
-The results of the described evaluation process are directly reported in table #FIXME: add table, and also visualized in the interactive Fig.FIXME: add fig. num.
+The results of the described evaluation process are directly reported in Table 2, and also visualized in the interactive Fig.FIXME: add fig. num.
 
-In particular, with "LSTM1" we intend the class of LSTM models taking as input the first type of features (autoregressive-only) described in the previous paragraph, whereas "LSTM2" refers to the mixed-input features approach.
+
+![](imgs/results_table.png)
+
+Linear Models seems to better perform on the test set, having significantly low error (in terms of mape) on the iterated (thus averaged) predictions with respect to the LSTM models. On the other hand, in the short prediction steps (1-24) the punctual predictions of the non linear models are slightly better, demonstrating the good fitting capacity of such approaches, which suffers from iterated predictions on never-seen-before data.
+<!--
+FIXME: add a comment on comparing results among arima models -->
+
+The LSTM2 attempt seems to ameliorate the single-input results, confirming the important role of the external features (harmonics and weather data) in guiding the forecast, especially on long-term previsions.
 
 <div align="center">
 <figure>
@@ -352,5 +381,12 @@ shiny::includeHTML("imgs/results.html")
 </figure>
 </div>
 
+The overall better performances of the linear models are justified by the fact that the considered process has strongly gaussian characteristics, being intrinsecally periodic (due to its origin from a physics perspective) and stationary (for the goodness of Venice!). 
+Therefore, a linear approach is naturally expected to produce good results.
 
 # Conclusions
+
+Summarizing the analysis, different linear models (arima, ucm) and non-linear ones are tested in order to predict 1/24/168 steps ahead observations in the time series of tidal levels in Venice.
+Interesting results are obtained with the linear models regarding the average predictions over a week, whereas seemingly good performances are provided by the non-linear models in particular for one-shot predictions in the 1/24 steps ahead forecasting.
+
+Further improvements are mostly identified in the increase of the computational power available, which would allow to fit both linear and non-linear models in a longer temporal window. More accurate weather data will also be required in order to improve the deterministic part of the predictions, whereas further modelling under the perspective of the physics origin of the mareal phenomena would certainly provide interesting insights.
