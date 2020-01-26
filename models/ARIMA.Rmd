@@ -43,13 +43,15 @@ library(SWMPr)
 library(KFAS)
 library(patchwork)
 library(zoo)
+library(knitr)
+library(kableExtra)
 
 acfpacf <- function(x, max.lag=36){
   require(ggplot2)
-  par(mfrow = c(1,2))
-  ggAcf(x, lag.max = max.lag)
-  ggPacf(x, lag.max = max.lag)
-  par(mfrow = c(1,1))
+  require(cowplot)
+  plot.acf <- ggAcf(x, lag.max = max.lag)
+  plot.pacf <- ggPacf(x, lag.max = max.lag)
+  cowplot::plot_grid(plot.acf, plot.pacf, nrow = 2)
 }
 
 ggplot.corr <- function(data, lag.max = 24, ci = 0.95, large.sample.size = TRUE, horizontal = TRUE,...) {
@@ -128,9 +130,23 @@ ggplot.corr <- function(data, lag.max = 24, ci = 0.95, large.sample.size = TRUE,
 }
 
 ```
+<style>
+body{
+text-align:justify
+}
+</style>
+
 # Overview
 
+Come prima parte del progetto, abbiamo provveduto ad implementare due modelli ARIMA basati ognuno sull'utilizzo di alcuni regressori come contributo ulteriore, oltre alle componenti autoregressive e media mobile, alla previsione del livello di marea nella laguna di Venezia.
+
+Il primo di questi modelli si basa sull'utilizzo di alcuni variabili meteorologiche, ovvero pioggia (mm), direzione del vento (gradi) e velocità del vento (m/s), unite al tracciamento del ciclo lunare (ricavato grazie all'API *PyEphem*) come regressori.
+
+Il secondo modello invece utilizza come regressori una serie di armoniche descrittive dei cicli di marea ricavate grazie al pacchetto *oce*.
+
 # Preparazione dei dati
+
+Come primo passo importiamo i dati necessari
 
 ```{r import data, echo=T}
 data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
@@ -138,10 +154,284 @@ lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
 data$l_motion <- 1/lunar_motion$dists.Km.^2
 ```
 
+a questo punto possiamo limitare i dati al nostro intervallo di interesse ovvero a partire dal 24/06/2018 00:00:00 al 31/12/2018 alle 23:00:00.
+
+```{r trn&tst, echo=T}
+data[data$datetime=="2018-06-24 00:00:00",]
+trn <- data[74305:(nrow(data)-336),] # train sono 6 mesi meno 1 settimana
+tst <- data[(nrow(data)-335):nrow(data),] # val 1 settimana + test 1 settimana
+```
+
+dopo una serie di ispezioni riguardanti frequenze all'interno della serie storica, stazionarietà in media (che viene confermata), stazionarietà in varianza (anche questa confermata) e normalità della serie (stabilendo quindi l'equivalenza tra stazionarietà debole e forte).
+
+Continuiamo nella preparazione dei dati standardizzando i regressori
+
+```{r regressors, echo=TRUE}
+xreg <- matrix(c(as.vector(scale(trn$rain)),
+                 as.vector(scale(trn$vel_wind)),
+                 as.vector(scale(trn$dir_wind)),
+                 as.vector(scale(trn$l_motion))), ncol = 4)
+
+col_names <- c("rain", "vel_wind", "dir_wind", "l_motion")
+colnames(xreg) <- col_names
+
+xreg_test <- matrix(c(as.vector(scale(tst$rain)),
+                      as.vector(scale(tst$vel_wind)),
+                      as.vector(scale(tst$dir_wind)),
+                      as.vector(scale(tst$l_motion))), ncol = 4)
+
+colnames(xreg_test) <- col_names
+
+xreg <- rbind(xreg, xreg_test)
+
+Hmisc::describe(xreg, digits = 2, tabular = F, title = "Regressors")
+```
+
+e concludiamo l'elaborazione dei dati visualizzando i plot di autocorrelazione e autocorrelazione parziale:
+
+```{r acfpacf init, fig.align="center", echo=T}
+acfpacf(trn$level, max.lag = 100)
+```
+
+
 # Modelli ARIMA
+
+Come anticipato i modelli realizzati sono due, mentre uno utilizza come regressori variabili meteorologiche e ciclo lunare (assumendo quindi che per un modello in "produzione" sia possibile disporre di previsioni meteo piuttosto accurate e del tracciamento del ciclo lunare, questo, deterministico) l'altro si serve di alcune armoniche descrittive dei cicli di marea ottenute attraverso funzioni del tempo (per questa ragione, quindi, deterministiche anche queste e proiettabili per poter fare previsione).
 
 ## Variabili meteo e ciclo lunare
 
+Il primo modello presentato è quello composto caratterizzato dall'utilizzo di variabili meteorologiche e ciclo lunare. Come si può vedere l'inserimento dei regressori sembra spiegare molto poco rispetto ai valori assunti dalla serie storica
+
+```{r arima1 only regressors, echo=T, fig.align=T}
+mod1_ar_baseline <- Arima(trn$level+0.1, xreg = xreg[1:4248,,drop=FALSE],
+                 include.drift = T,
+                 c(0,0,0), list(order = c(0,0,0), period = 24))
+
+summary(mod1_ar_baseline)
+acfpacf(mod1_ar_baseline$residuals, max.lag = 100)
+autoplot(ts(trn$level), series = "true")+theme_bw()+labs(y = "level")+autolayer(ts(mod1_ar_baseline$fitted), series = "fitted")
+```
+
+A questo punto, seguendo i valori di AICc, MAPE e quelli di autocorrelazione e autocorrelazione parziale siamo giunti ad una forma finale per il modello che non risulta in una risoluzione definitiva ma che sembrerebbe il miglior modello ottenibile sotto queste condizioni.
+
+```{r arima1 final, echo=T, fig.align=T}
+mod1_ar <- Arima(trn$level+0.1, xreg = xreg[1:4248,,drop=FALSE],
+                 include.drift = F,
+                 c(3,1,3), list(order = c(1,1,3), period = 24))
+
+summary(mod1_ar)
+acfpacf(mod1_ar$residuals, max.lag = 100)
+```
+
+come si vede dal grafico di autocorrelazione infatti quest'ultima non è stata completamente assorbita; tuttavia il test di Box-Ljung certifica che i residui risultino white noise almeno per quanto riguarda la prima ora di lag
+
+```{r box-ljung1, echo=TRUE}
+Box.test(mod1_ar$residuals, type="Ljung-Box")
+```
+
+anche i risultati di fitting insample sembrano migliorare parecchio
+
+```{r fitting insample, echo=T, fig.align="center"}
+autoplot(ts(trn$level), series = "true")+theme_bw()+labs(y = "level")+autolayer(ts(mod1_ar$fitted), series = "fitted")
+```
+
+più avanti verrano presentate le performances.
+
 ## Armoniche
 
+Il primo modello, come mostrato, performa piuttosto bene ma è molto complesso dal punto di vista della magnitudine dei parametri. L'approccio presentato di seguito, invece, riesce ad ottenere performances anche migliori utilizzando come regressori 8 armoniche descrittive dei cicli di marea, rappresentanti ognuna una particolare grandezza influente sul livello delle onde, come per esempio il semi-ciclo lunare, quello solare e altro ancora.
+
+Per ricavare queste armoniche ci serviamo del pacchetto *oce*
+
+```{r prepare harmonics, echo=TRUE}
+data <- read.csv("../data/output/df_final2010-2018.csv", header = T)
+lunar_motion <- read.csv("../moon_distance/moon_distances.csv", header = T)
+data$l_motion <- 1/lunar_motion$dists.Km.^2
+datsl <- as.sealevel(data$level/100)
+constituents <- c('M2', 'S2', 'N2', 'K2', 'K1', 'O1', 'SA', 'P1')
+preds <- sapply(constituents, function(x){
+  
+  mod <- tidem(t = datsl, constituent = x)
+  pred <- predict(mod)
+  pred - mean(pred)
+  
+}) 
+predall <- rowSums(preds) + mean(datsl[['elevation']])
+preds <- data.frame(time = datsl[['time']], preds, Estimated = predall) 
+data$M2 <- preds$M2
+data$S2 <- preds$S2
+data$N2 <- preds$N2
+data$K2 <- preds$K2
+data$K1 <- preds$K1
+data$O1 <- preds$O1
+data$SA <- preds$SA
+data$P1 <- preds$P1
+
+trn <- data[74305:(nrow(data)-336),]
+tst <- data[(nrow(data)-335):nrow(data),]
+
+col_names <- c("M2", "S2", "N2","K2", "K1", "O1", "SA", "P1")
+xreg_arm <- matrix(c(trn$M2, trn$S2, trn$N2, trn$K2, trn$K1, trn$O1, trn$SA, trn$P1), ncol = 8)
+xreg_test <- matrix(c(tst$M2, tst$S2, tst$N2, tst$K2, tst$K1, tst$O1, tst$SA, tst$P1), ncol = 8)
+colnames(xreg_arm) <- col_names
+colnames(xreg_test) <- col_names
+
+
+xreg_arm <- rbind(xreg_arm, xreg_test)
+```
+
+```{r arima2 only regressors, echo=T, fig.align="center"}
+mod2_ar_baseline <- Arima((trn$level/100)+0.001, xreg = xreg_arm[1:4248,,drop=F],
+                 include.drift = T,
+                 c(0,0,0)
+                 , list(order = c(0,0,0), period = 24))
+
+summary(mod2_ar_baseline)
+acfpacf(mod2_ar_baseline$residuals)
+autoplot(ts(trn$level/100), series = "real") +theme_bw()+labs(y="level")+ autolayer(mod2_ar_baseline$fitted, series = "fitted")
+```
+
+Come si vede il solo utilizzo delle armoniche permette di fittare molto bene la parte insample della serie. A questo punto seguendo il medesimo approccio utilizzato con il modello precedente provvediamo a raggiungere un modello finale.
+
+```{r arima2 final, echo=T, fig.align="center"}
+mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg_arm[1:4248,,drop=F],
+                 include.drift = F,
+                 c(3,0,2)
+                 , list(order = c(1,0,0), period = 24))
+
+summary(mod2_ar)
+acfpacf(mod2_ar$residuals, max.lag = 100)
+```
+
+anche per questo modello non è stato possibile assorbire tutta l'autocorrelazione insita all'interno della serie storica ma il test di Box-Ljung certifica che per alcune ore di lag i residui risultino effettivamente essere dei white noise
+
+```{r box-ljung2, echo=T}
+Box.test(mod2_ar$residuals, type="Ljung-Box")
+```
+
+A questo punto non resta che confrontare i modelli sulla base delle performances raggiunte sul validation e sul test set.
+
 # Risultati
+
+Procediamo ad effettuare le valutazioni del modello: allo scopo di effettuare una valutazione più robusta abbiamo deciso di effettuare uno scoring di due tipi per entrambi i modelli, un primo basato sulla previsione one-shot, ovvero prevedere come già fatto tutto l'orizzonte del test set e verificare come è andata la previsione 1 ora in avanti, 24 ore in avanti (come somma delle previsioni da 1 a 24 ore in avanti) e 168 ore in avanti (come somma degli errori di previsione da 1 a 168 ore in avanti), il secondo metodo invece consiste nell'iterare di un passo per 168 volte ed effettuare i 3 tipi di previsione in modo da verificare le effettive performances medie indipendentemente dal punto di partenza della previsione.
+
+Confrontiamo innanzitutto il risultato di previsione sulle due settimane di validation e test set per entrambi i modelli
+
+```{r results, echo=T, fig.align="center"}
+y_true <- tst$level
+y_pred1 <- forecast(mod1_ar, h = 336, xreg = xreg[4249:nrow(xreg),])$mean
+y_pred2 <- forecast(mod2_ar, h = 336, xreg = xreg_arm[4249:nrow(xreg_arm),])$mean*100
+autoplot(ts(y_true), series = "true") + autolayer(ts(y_pred1), series = "ar1") + autolayer(ts(y_pred2), series ="ar2")+labs(y = "level")
+```
+
+il modello ARIMA 2 basato sull'uso delle armoniche sembrerebbe performare leggermente meglio rispetto al modello ARIMA 1 per tutto il periodo preso in esame.
+
+Confrontiamo numericamente
+
+```{r one-shot prediction, echo=T}
+mape1 <- round(c(MAPE(y_pred1[1], y_true[1]+0.1),MAPE(y_pred1[1:23], y_true[1:23]+0.1),MAPE(y_pred1[1:167], y_true[1:167]+0.1)),2)
+mape2 <- round(c(MAPE(y_pred2[1], y_true[1]+0.1), MAPE(y_pred2[1:23], y_true[1:23]+0.1), MAPE(y_pred2[1:167], y_true[1:167]+0.1)),2)
+
+step1_1 <- MAPE(y_pred1[1], y_true[1]+0.1)
+step24_1 <- MAPE(y_pred1[1:23], y_true[1:23]+0.1)
+step168_1 <- MAPE(y_pred1[1:167], y_true[1:167]+0.1)
+  
+step1_2 <- MAPE(y_pred2[1:167], y_true[1:167]+0.1)
+step24_2 <- MAPE(y_pred2[1:167], y_true[1:167]+0.1)
+step168_2 <- MAPE(y_pred2[1:167], y_true[1:167]+0.1)
+  
+kable_styling(kable(matrix(c(mape1, mape2), ncol = 3, nrow = 2, byrow = T, dimnames = list(c("ARIMA 1", "ARIMA 2"), c("1-step", "24-steps", "168-steps"))), caption = "One-shot performances"))
+```
+
+la tabella conferma quanto appariva intuibile attraverso il plot. Per le valutazioni one-shot, infatti, il modello ARIMA 2 raggiunge performances di errore migliori rispetto a quelle del modello ARIMA 1.
+
+Produciamo la misurazione delle performances in rolling
+
+```{r rolling prediction, echo=T}
+##ARIMA1
+y <- rbind(trn, tst)
+y <- y$level
+
+# 1 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.1)
+}
+pred_1step1 <- mean(score)
+
+# 24 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+23),,drop=FALSE], h = 24)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.1)
+}
+pred_24step1 <- mean(score)
+
+# 168 steps ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg[i:(4247+i),,drop=F], model = mod1_ar)
+  pred <- forecast(mod_prod, xreg = xreg[(4248+i):(4248+i+167),,drop=FALSE], h = 168)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.1)
+}
+pred_168step1 <- mean(score)
+
+##ARIMA2
+y <- rbind(trn, tst)
+y <- y$level/100
+
+# 1 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg_arm[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg_arm[(4248+i):(4248+i),,drop=FALSE], h = 1)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i)]+0.001)
+}
+pred_1step2 <- mean(score, na.rm = T)
+
+# 24 step ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg_arm[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg_arm[(4248+i):(4248+i+23),,drop=FALSE], h = 24)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 23)]+0.001)
+}
+pred_24step2 <- mean(score)
+
+# 168 steps ahead predictions
+score <- numeric(168)
+for (i in 1:168){
+  mod_prod <- Arima(y[i:(4247+i)], xreg = xreg_arm[i:(4247+i),,drop=F], model = mod2_ar)
+  pred <- forecast(mod_prod, xreg = xreg_arm[(4248+i):(4248+i+167),,drop=FALSE], h = 168)$mean
+  score[i] <- MAPE(pred, y[(4248 + i):(4248 + i + 167)]+0.001)
+}
+pred_168step2 <- mean(score)
+```
+
+e realizziamo una tabella riassuntiva come fatto in precedenza
+
+```{r rolling performances, echo=TRUE}
+kable_styling(kable(matrix(c(pred_1step1, pred_24step1, pred_168step1,
+         pred_1step2, pred_24step2, pred_168step2), nrow = 2, ncol = 3, byrow = T,
+       dimnames = list(c("ARIMA 1 MAPE", "ARIMA 2 MAPE"), c("1-step", "24-steps", "168-steps"))), caption = "Rolling performances"))
+```
+
+anche in questo caso il modello ARIMA 2 sembrerebbe lavorare meglio rispetto al modello ARIMA 1.
+
+Produciamo ancora una visualizzazione riassuntiva delle performances dei due modelli sia puntuali che in rolling
+
+```{r result plot, echo=T, fig.align="center"}
+perf <- data.frame(
+  MAPE = c(step1_1, step24_1, step168_1, step1_2, step24_2, step168_2, pred_1step1, pred_24step1, pred_168step1,
+           pred_1step2, pred_24step2, pred_168step2),
+  type = c("one-shot","one-shot","one-shot","one-shot","one-shot","one-shot","rolling","rolling","rolling","rolling","rolling","rolling"),
+  horizon = c("1-step", "24-steps", "168-steps", "1-step", "24-steps", "168-steps","1-step", "24-steps", "168-steps","1-step", "24-steps", "168-steps"),
+  model = c("ARIMA 1","ARIMA 1","ARIMA 1","ARIMA 2","ARIMA 2","ARIMA 2","ARIMA 1","ARIMA 1","ARIMA 1","ARIMA 2","ARIMA 2","ARIMA 2"))
+perf$horizon <- ordered(perf$horizon, levels = c("1-step", "24-steps", "168-steps"))
+ggplot(data = perf, aes(fill = type, y = MAPE, x = horizon))+geom_bar(position = "dodge", stat = "identity")+theme_bw()+facet_wrap(~model)
+```
+
+come prevedibile, quindi, il modello basato sulle 8 armoniche estratte grazie all'utilizzo del pacchetto *oce* ottiene prestazioni generalmente migliori, sia per quanto riguarda le valutazioni one-shot che per quelle in rolling per previsioni con orizzonte ad 1 ora, a 24 ore e a 168 ore (1 settimana).
