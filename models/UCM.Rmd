@@ -5,6 +5,7 @@ author: "Dario Bertazioli, Fabrizio D'Intinosante"
 output:
   rmdformats::readthedown:
     highlight: kate
+    code_folding: hide
 ---
 
 
@@ -24,7 +25,6 @@ opts_chunk$set(echo=FALSE,
 opts_knit$set(width=75)
 ```
 
-
 ```{r packages and function, echo=FALSE}
 library(xts)
 library(lubridate)
@@ -41,7 +41,8 @@ library(TSA)
 library(oce)
 library(SWMPr)
 library(KFAS)
-
+library(knitr)
+library(kableExtra)
 
 acfpacf <- function(x, max.lag=36){
   require(forecast)
@@ -133,7 +134,7 @@ e controlliamo la struttura della matrici che lo compongono:
 
 ```{r matrices, echo=TRUE}
 mod1$Q
-mod1$T
+kable_styling(kable(mod1$T))
 ```
 
 Procediamo quindi ad applicare una serie di correzioni; imponiamo ad esempio che le condizioni iniziali non siano diffuse, aggiungiamo il valore medio iniziale per il trend e la varianza iniziale per le componenti
@@ -148,6 +149,168 @@ mod1$a1[9] <- mean(data$level[1:(nrow(data)-336)], na.rm = T)
 Definiamo una update function custom, pur non essendocene bisogno poichè quella di default dovrebbe funzionare ugualmente avendo soltanto la varianza del Random Walk e quella dell'errore da ottimizzare ma avendo tentato molti approcci diversi con componenti che richiedevano la sua definizione abbiamo deciso di mantenerla
 
 ```{r updt function, echo=T}
+pars <- numeric(5)
+pars[1] <- log(vary/100)
+pars[2] <- log(vary/100)
+pars[3] <- log(vary/100)
+pars[4] <- log(vary/100)
+pars[5] <- log(0.01)
+
+updt <- function(pars, model) {
+  model$Q[1, 1, 1] <- exp(pars[1])
+  model$H[1, 1, 1] <- exp(pars[4])
+  model
+}
 
 ```
+
+Con la funzione di update abbiamo terminato la preparazione del modello: a questo punto non resta che avviare l'ottimizzazione
+
+```{r optim, echo = T}
+fit1 <- fitSSM(mod1, pars, updt, control = list(maxit = 1000))
+fit1$optim.out$convergence
+```
+
+L'output ci comunica che l'ottimizzatore è arrivato a convergenza. Proviamo a questo punto a rappresentare la previsione su **tutto** il nostro test set per verificare l'andamento della previsione.
+
+Per fare ciò dobbiamo definire un nuovo modello con la variabile esplicativa compilata unicamente con NA values e con i parametri ottimizzati dal modello precedentemente ottimizzato
+
+```{r predict, echo=TRUE}
+lev <- c(rep(NA, 336))
+temp_mod <- SSModel(lev ~ 0 +
+                      SSMtrend(1, fit1$model$Q[1,1,1])+
+                      M2+
+                      S2+
+                      N2+
+                      K2+
+                      K1+
+                      O1+
+                      SA+
+                      P1,
+                    H = fit1$model$H,
+                    data = data[(4248+1):(4248+336),])
+
+
+y_true <- data$level[4249:(4249+335)]
+y_pred <- as.numeric(predict(fit1$model, newdata = temp_mod, n.ahead = 336))*100
+```
+
+Plottiamo i risultati su train e test per verificare la qualità della previsione
+
+```{r train fitting, echo=T, fig.align="center"}
+smo1 <- KFS(fit1$model, smoothing = c("signal"))
+autoplot(ts(data$level[1:4248]), series = "true") + theme_bw()+ autolayer(ts(smo1$muhat[1:4248]*100), series = "pred") + labs(y = "level")
+```
+
+Vediamo adesso i risultati in test
+
+```{r test fitting, echo=T, fig.align="center"}
+autoplot(ts(y_true), series = "true") + theme_bw() + autolayer(ts(y_pred), series = "pred") + labs(y = "level")
+```
+
+I risultati in test sembrerebbero piuttosto buoni considerando anche il fatto che le due settimane prese in esame rappresentano i pattern particolare. Come è possibile notare infatti mentre nel periodo iniziale alle 06:00:00 del mattino è presente il picco di marea più alto della giornata seguito da quello delle 18-19:00:00 circa ad un certo punto i picchi arrivano ad una situazione in cui si equivalgono per poi invertirsi.
+
+Procediamo a questo punto ad effettuare le valutazioni del modello: allo scopo di effettuare una valutazione più robusta abbiamo deciso di effettuare uno scoring di due tipi, un primo basato sulla previsione one-shot, ovvero prevedere come già fatto tutto l'orizzonte del test set e verificare come è andata la previsione 1 ora in avanti, 24 ore in avanti (come somma delle previsioni da 1 a 24 ore in avanti) e 168 ore in avanti (come somma degli errori di previsione da 1 a 168 ore in avanti), il secondo metodo invece consiste nell'iterare di un passo per 168 volte ed effettuare i 3 tipi di previsione in modo da verificare le effettive performances medie indipendentemente dal punto di partenza della previsione.
+
+```{r one shot predictions, echo=T, results="asis"}
+step1 <- round(c(MAPE(y_pred[1], y_true[1]+0.1), RMSE(y_pred[1], y_true[1]+0.1)), 2)
+steps24 <-  round(c(MAPE(y_pred[1:23], y_true[1:23]+0.1), RMSE(y_pred[1:23], y_true[1:23]+0.1)), 2)
+steps168 <- round(c(MAPE(y_pred[1:length(y_pred)], y_true[1:length(y_true)]+0.1), RMSE(y_pred[1:length(y_pred)], y_true[1:length(y_true)]+0.1)), 2)
+
+kable_styling(kable(matrix(c(step1, steps24, steps168), ncol = 3, nrow = 2, byrow = F, dimnames = list(c("MAPE", "RMSE"), c("1-step", "24-steps", "168-steps"))), caption = "One-shot performances"))
+```
+
+Le previsioni one-shot rispecchiano quanto visto nel plot della previsione. Provvediamo a questo punto ad effettuare le previsioni in rolling come anticipato:
+
+```{r rolling prediction, echo=T}
+# 1 step ahead
+score <- numeric(168)
+for (i in 1:168){
+  lev <- c(data$level[4248:(4247+i)]/100, rep(NA, 1))
+  lev
+  temp_mod <- SSModel(lev ~ 0 +
+                        SSMtrend(1, fit1$model$Q[1,1,1])+
+                        M2+
+                        S2+
+                        N2+
+                        K2+
+                        K1+
+                        O1+
+                        SA+
+                        P1,
+                      H = fit1$model$H,
+                      data = data[(4247+1):(4247+i+1),])
+  
+  ucm_pred <- predict(fit1$model, newdata = temp_mod, n.ahead = 1)[(i+1):(i+1)]
+  
+  score[i] <- MAPE(ucm_pred, ((data$level[4248+i]/100)+0.001))
+}
+
+step1_ucm1 <- mean(score)
+
+# 24 steps ahead
+score <- numeric(168)
+for (i in 1:168){
+  lev <- c(as.numeric(data$level[4248:(4247+i)]/100), rep(NA, 24))
+  temp_mod <- SSModel(lev ~ 0 +
+                        SSMtrend(1, fit1$model$Q[1,1,1])+
+                        M2+
+                        S2+
+                        N2+
+                        K2+
+                        K1+
+                        O1+
+                        SA+
+                        P1,
+                      H = fit1$model$H,
+                      data = data[(4247+1):(4247+i+24),])
+  
+  ucm_pred <- predict(fit1$model, newdata = temp_mod, n.ahead = 24)[(i+1):(i+24)]
+  
+  score[i] <- MAPE(ucm_pred, (data$level[(4248+i):(4248+i+23)]/100)+0.001)
+}
+
+step24_ucm1 <- mean(score)
+
+# 168 steps ahead
+score <- numeric(168)
+for (i in 1:168){
+  lev <- c(as.numeric(data$level[4248:(4247+i)]/100), rep(NA, 168))
+  temp_mod <- SSModel(lev ~ 0 +
+                        SSMtrend(1, fit1$model$Q[1,1,1])+
+                        M2+
+                        S2+
+                        N2+
+                        K2+
+                        K1+
+                        O1+
+                        SA+
+                        P1,
+                      H = fit1$model$H,
+                      data = data[(4247+1):(4247+i+168),])
+
+  ucm_pred <- predict(fit1$model, newdata = temp_mod, n.ahead = 168)[(i+1):(i+168)]
+  
+  score[i] <- MAPE(ucm_pred, (data$level[(4248+i):(4248+i+167)]/100)+0.001)
+}
+
+step168_ucm1 <- mean(score)
+```
+
+
+```{r rolling results, echo=T}
+kable_styling(kable(matrix(c(step1_ucm1, step24_ucm1, step168_ucm1), ncol = 3, nrow = 1, byrow = F, dimnames = list(c("MAPE"), c("1-step", "24-steps", "168-steps"))), caption = "Rolling performances"))
+```
+
+Le previsioni in rolling mostrano una coerenza di risultato ed un comprensibile aumento dell'errore a seconda dell'ampiezza della previsione a partire da 1 ora fino a 168 ore (una settimana) in avanti
+
+```{r results plot, echo=T, fig.align="center"}
+perf <- data.frame(MAPE = c(step1[1], step1_ucm1, steps24[1], step24_ucm1, steps168[1], step168_ucm1),
+           type = c("one-shot","rolling", "one-shot","rolling", "one-shot", "rolling"),
+           horizon = c("1-step", "1-step", "24-steps", "24-steps", "168-steps", "168-steps"))
+
+perf$horizon <- ordered(perf$horizon, levels = c("1-step", "24-steps", "168-steps"))
+ggplot(data = perf, aes(fill = type, y = MAPE, x = horizon))+geom_bar(position = "dodge", stat = "identity")+theme_bw()
+```
+
 
