@@ -1,0 +1,10 @@
+.DS_Store
+.Rproj.user
+.Rhistory
+.Rapp.history
+.RData
+.Rprofile
+inspection_cache
+parsing_tides_data_cache
+paring_tides_weather_cache
+preprocess_weather_data_2000_2019_cache

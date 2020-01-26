@@ -610,7 +610,7 @@ xreg <- rbind(xreg, xreg_test)
 
 acfpacf(trn$level)
 mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg[1:4248,,drop=F],
-                 include.drift = F,
+                 include.drift = T,
                  c(3,0,2)
                  , list(order = c(1,0,0), period = 24))
 

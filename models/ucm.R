@@ -84,16 +84,10 @@ data <- data[74305:nrow(data),]
 # 
 # xreg
 #xreg[(nrow(xreg)-167):nrow(xreg),] <- NA
+
 # UCM ---------------------------------------------------------------------
 
-#y <- data$level
-#y[(nrow(data)-167):nrow(data)] <- NA
-
-#rm(list = c("mod1", "smo1", "fit1"))
-
-#if (sinu){
 mod1 <- SSModel(level/100 ~ 0 +
-                  #SSMregression(~V1+V2+V3+V4, Q = diag(NA, 4), data = reg_norm)+
                   SSMtrend(1, NA)+
                   M2+
                   S2+
@@ -103,23 +97,21 @@ mod1 <- SSModel(level/100 ~ 0 +
                   O1+
                   SA+
                   P1,
-                  #SSMregression(~M2+S2+N2+K2+K1+O1+SA+P1, Q = diag(NA, 8), data = xreg),
-                  #SSMseasonal(12, NA, "dummy")+
-                  #SSMseasonal(24, NA, "dummy"),
                 H = NA,
                 data = data[1:(nrow(data)-336),])
 mod1$Q
 mod1$T
 mod1$Z
+
 mod1$P1inf <- mod1$P1inf * 0
 vary <- var(data$level[1:(nrow(data)-336)], na.rm = TRUE)
 diag(mod1$P1) <- log(vary)
-mod1$a1[1] <- mean(data$level[1:(nrow(data)-336)], na.rm = T)
+mod1$a1[9] <- mean(data$level[1:(nrow(data)-336)], na.rm = T)
 mod1$a1
 mod1$P1
 
 pars <- numeric(5)
-vary
+vary/100
 pars[1] <- log(vary/100)
 pars[2] <- log(vary/100)
 pars[3] <- log(vary/100)
@@ -130,13 +122,6 @@ dim(mod1$Q)
 
 updt <- function(pars, model) {
   model$Q[1, 1, 1] <- exp(pars[1])
-  #model$Q[5, 5, 1] <- exp(pars[1])
-  #model$Q[2, 2, 1] <- exp(pars[2])
-  #diag(model$Q[2:9, 2:9, 1]) <- exp(pars[5])
-  #diag(model$Q[10:20, 10:20, 1]) <- exp(pars[2])
-  #model$Q[10, 10, 1] <- exp(pars[2])
-  #diag(model$Q[11:33, 11:33, 1]) <- exp(pars[3])
-  #model$Q[11, 11, 1] <- exp(pars[3])
   model$H[1, 1, 1] <- exp(pars[4])
   model
 }
@@ -266,7 +251,7 @@ pander::pandoc.table(matrix(c(step1_ucm1, step24_ucm1, step168_ucm1), nrow = 1, 
 
 # one shot predictions
 
-lev <- c(rep(NA, 168))
+lev <- c(rep(NA, 336))
 temp_mod <- SSModel(lev ~ 0 +
                       SSMtrend(1, fit1$model$Q[1,1,1])+
                       M2+
@@ -278,11 +263,11 @@ temp_mod <- SSModel(lev ~ 0 +
                       SA+
                       P1,
                     H = fit1$model$H,
-                    data = data[(4248+1):(4248+168),])
+                    data = data[(4248+1):(4248+336),])
 
 
-y_true <- data$level[4249:(4249+167)]
-y_pred <- as.numeric(predict(fit1$model, newdata = temp_mod, n.ahead = 168))*100
+y_true <- data$level[4249:(4249+335)]
+y_pred <- as.numeric(predict(fit1$model, newdata = temp_mod, n.ahead = 336))*100
 plot(y_true, type = "l")
 lines(y_pred, col = "red")
 
@@ -347,10 +332,9 @@ MAPE(smo1$muhat[4249:(4249+23)]*100, data$level[4249:(4249+23)]+0.1)
 MAPE(smo1$muhat[4249:(4249+167)]*100, data$level[4249:(4249+167)]+0.1)
 
 
-
-
-
-
+smo1 <- KFS(fit1$model, smoothing = c("signal", "disturbance"))
+ 
+autoplot(ts(data$level[1:4248]), series = "true") + theme_bw() + labs(y = "level") + autolayer(smo1$muhat*100, series = "pred")
 
 
 ##############

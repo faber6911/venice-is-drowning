@@ -116,6 +116,7 @@ Regarding the former,  Fig.1 suggests the series to be characterized by a statio
 <!--
 Durante il lavoro di prima ispezione dei dati storici una delle verifiche effettuate ha riguardato la stazionarietà in media e quella in varianza: per quanto riguarda la prima osservando la serie in fig. 1 questa sembrerebbe effettivamente risultare stazionaria in media, per questa ragione per confermare l'ipotesi di stazionarietà in fig. 3 è riportato l'output di un test Augmented Dickey-Fuller che, come si vede, conferma a tutti gli effetti la stazionarietà in media del fenomeno mareale.
 -->
+
 <center>
 <figure>
 ![Figure 3](imgs/adf_test.PNG)
@@ -252,7 +253,7 @@ The autocorrelation and the fitting performances are visible in Fig.10.
 </figure>
 </center>
 <br>
-As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average.
+As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average: the autocorrelation plots and the model fitting on the train set is visibile in fig. 11.
 
 <center>
 <figure>
@@ -261,6 +262,8 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 </figure>
 </center>
 <br>
+
+Also in this case, following the observations of the autocorrelation plots and the trend of the AICc we proceeded to insert the autoregressive and moving average components until obtaining the final model (3,0,2)(1,0,0)[24] with drift. It is worth to notice how this model is decidedly less parameterized than the previous one: this is due to the fact that the harmonics inserted manage to explain a large part of the historical series by themselves as can be seen from fig. 11. After the fitting the resulting autocorrelation plots appears as reported in fig. 12. Even in this case it was not possible to absorb all the autocorrelation but the Box-Ljung text ensures that the residuals are white noise up to the third lag and the performances on train and test set are pretty good.
 
 <center>
 <figure>
@@ -273,6 +276,10 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 
 ## UCM
 
+As a second typology of models regarding the section of linear models, a UCM model has been implemented, in addition to the ARIMA models already mentioned. Numerous attempts were made for this type of model: first of all an attempt was made to create a model based solely on the UCM components available as trigonometric and dummy seasonality, a trend with all its manifestations (LLT, IRW, RW) together with a stationary cycle, then an attempt was made to use the meteorological variables together with the lunar cycle to try to increase the portion of the time serie explained by the model and finally an attempt was made again using the harmonics calculated using the *oce* package. The best performing model was found to be the one composed of harmonics inserted directly as components together with a trend component, specifically a random walk. 
+
+In this sense it is possible once again to understand how much harmonics can contribute in explaining the level of the tides. Later, as for the ARIMA models, the results of the UCM model will also be shown.
+
 ## LSTM
 
 Inserire qui procedimento svolto LSTM
@@ -282,7 +289,7 @@ Inserire qui procedimento svolto LSTM
 <div align="center">
 <figure>
 ```{r results, out.width="60%"}
-shiny::includeHTML("results.html")
+shiny::includeHTML("imgs/results.html")
 ```
 <figcaption>Figure X:</figcaption>
 </figure>
