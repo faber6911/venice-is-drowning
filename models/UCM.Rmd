@@ -173,6 +173,8 @@ fit1$optim.out$convergence
 
 L'output ci comunica che l'ottimizzatore è arrivato a convergenza. Proviamo a questo punto a rappresentare la previsione su **tutto** il nostro test set per verificare l'andamento della previsione.
 
+# Risultati
+
 Per fare ciò dobbiamo definire un nuovo modello con la variabile esplicativa compilata unicamente con NA values e con i parametri ottimizzati dal modello precedentemente ottimizzato
 
 ```{r predict, echo=TRUE}
