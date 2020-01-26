@@ -22,10 +22,85 @@ library(zoo)
 
 acfpacf <- function(x, max.lag=36){
   require(forecast)
-  par(mfrow = c(2,1))
+  par(mfrow = c(1,2))
   Acf(x, max.lag)
   Pacf(x, max.lag)
   par(mfrow = c(1,1))
+}
+
+ggplot.corr <- function(data, lag.max = 24, ci = 0.95, large.sample.size = TRUE, horizontal = TRUE,...) {
+  
+  require(ggplot2)
+  require(dplyr)
+  require(cowplot)
+  
+  if(horizontal == TRUE) {numofrow <- 1} else {numofrow <- 2}
+  
+  list.acf <- acf(data, lag.max = lag.max, type = "correlation", plot = FALSE)
+  N <- as.numeric(list.acf$n.used)
+  df1 <- data.frame(lag = list.acf$lag, acf = list.acf$acf)
+  df1$lag.acf <- dplyr::lag(df1$acf, default = 0)
+  df1$lag.acf[2] <- 0
+  df1$lag.acf.cumsum <- cumsum((df1$lag.acf)^2)
+  df1$acfstd <- sqrt(1/N * (1 + 2 * df1$lag.acf.cumsum))
+  df1$acfstd[1] <- 0
+  df1 <- select(df1, lag, acf, acfstd)
+  
+  list.pacf <- acf(sunspot.year, lag.max = lag.max, type = "partial", plot = FALSE)
+  df2 <- data.frame(lag = list.pacf$lag,pacf = list.pacf$acf)
+  df2$pacfstd <- sqrt(1/N)
+  
+  if(large.sample.size == TRUE) {
+    plot.acf <- ggplot(data = df1, aes( x = lag, y = acf)) +
+      geom_area(aes(x = lag, y = qnorm((1+ci)/2)*acfstd), fill = "#B9CFE7") +
+      geom_area(aes(x = lag, y = -qnorm((1+ci)/2)*acfstd), fill = "#B9CFE7") +
+      geom_col(fill = "#4373B6", width = 0.7) +
+      scale_x_continuous(breaks = seq(0,max(df1$lag),6)) +
+      scale_y_continuous(name = element_blank(), 
+                         limits = c(min(df1$acf,df2$pacf),1)) +
+      ggtitle("ACF") +
+      theme_bw()
+    
+    plot.pacf <- ggplot(data = df2, aes(x = lag, y = pacf)) +
+      geom_area(aes(x = lag, y = qnorm((1+ci)/2)*pacfstd), fill = "#B9CFE7") +
+      geom_area(aes(x = lag, y = -qnorm((1+ci)/2)*pacfstd), fill = "#B9CFE7") +
+      geom_col(fill = "#4373B6", width = 0.7) +
+      scale_x_continuous(breaks = seq(0,max(df2$lag, na.rm = TRUE),6)) +
+      scale_y_continuous(name = element_blank(),
+                         limits = c(min(df1$acf,df2$pacf),1)) +
+      ggtitle("PACF") +
+      theme_bw()
+  }
+  else {
+    plot.acf <- ggplot(data = df1, aes( x = lag, y = acf)) +
+      geom_col(fill = "#4373B6", width = 0.7) +
+      geom_hline(yintercept = qnorm((1+ci)/2)/sqrt(N), 
+                 colour = "sandybrown",
+                 linetype = "dashed") + 
+      geom_hline(yintercept = - qnorm((1+ci)/2)/sqrt(N), 
+                 colour = "sandybrown",
+                 linetype = "dashed") + 
+      scale_x_continuous(breaks = seq(0,max(df1$lag),6)) +
+      scale_y_continuous(name = element_blank(), 
+                         limits = c(min(df1$acf,df2$pacf),1)) +
+      ggtitle("ACF") +
+      theme_bw()
+    
+    plot.pacf <- ggplot(data = df2, aes(x = lag, y = pacf)) +
+      geom_col(fill = "#4373B6", width = 0.7) +
+      geom_hline(yintercept = qnorm((1+ci)/2)/sqrt(N), 
+                 colour = "sandybrown",
+                 linetype = "dashed") + 
+      geom_hline(yintercept = - qnorm((1+ci)/2)/sqrt(N), 
+                 colour = "sandybrown",
+                 linetype = "dashed") + 
+      scale_x_continuous(breaks = seq(0,max(df2$lag, na.rm = TRUE),6)) +
+      scale_y_continuous(name = element_blank(),
+                         limits = c(min(df1$acf,df2$pacf),1)) +
+      ggtitle("PACF") +
+      theme_bw()
+  }
+  cowplot::plot_grid(plot.acf, plot.pacf, nrow = numofrow)
 }
 
 # import data --------------------------------------------------------------
@@ -108,7 +183,9 @@ ggtsdisplay(tst$level,
 # a giudicare dai grafici ACF e PACF sembrerebbe trattarsi di un modello MA stagionale
 # poichè PACF decresce geometricamente mentre ACF presenta dei picchi stagionali
 
+#jpeg(filename = "../report/imgs/periodogram.jpg", width = 500, height = 300, quality = 100)
 p <- periodogram(data$level)
+#dev.off()
 dd <- data.frame(freq = p$freq, spec = p$spec, time = 1/p$freq)
 order <- dd[order(-dd$spec),]
 top10 <- head(order, 10)
@@ -334,11 +411,18 @@ xreg <- rbind(xreg, xreg_test)
 mod1_ar <- Arima(trn$level+0.1, xreg = xreg[1:4248,,drop=FALSE],
                  include.drift = F,
                  c(3,1,3), list(order = c(1,1,3), period = 24))
+
 summary(mod1_ar)
 acfpacf(mod1_ar$residuals, max.lag = 100)
+p1 <- ggplot.corr(mod1_ar$residuals, max.lag = 100, large.sample.size = T, horizontal = T)
+p1
 Box.test(mod1_ar$residuals, type="Ljung-Box")
+p2 <- autoplot(ts(trn$level), series = "true")+theme_bw()+labs(y = "level")+autolayer(ts(mod1_ar$fitted), series = "fitted")
+p2
 
-ggplotly(autoplot(ts(trn$level), series = "true")+autolayer(ts(mod1_ar$fitted), series = "fitted"))
+#jpeg("../report/imgs/ar1_2_acfpacf.jpg", width = 600, height = 300, quality = 100)
+#p1/p2
+#dev.off()
 
 y <- rbind(trn, tst)
 y <- y$level
@@ -521,20 +605,27 @@ xreg <- rbind(xreg, xreg_test)
 # xreg <- cbind(xreg, more_reg)
 
 #plot(zoo(xreg))
-#(3,0,2)(2,0,0)[24]
+#(3,0,2)(1,0,0)[24]
 
 
 acfpacf(trn$level)
 mod2_ar <- Arima((trn$level/100)+0.001, xreg = xreg[1:4248,,drop=F],
-                 include.drift = F,
+                 include.drift = T,
                  c(3,0,2)
                  , list(order = c(1,0,0), period = 24))
 
 summary(mod2_ar)
+acfpacf(mod2_ar$residuals)
+p1 <- ggplot.corr(mod2_ar$residuals, lag.max = 100, large.sample.size = T, horizontal = T)
+p1
 acfpacf(mod2_ar$residuals, max.lag = 72)
 #ggplotly(autoplot(ts(mod2_ar$residuals)))
 #ggplotly(autoplot(ts(trn$level)))
-ggplotly(autoplot(ts(trn$level/100), series = "real") + autolayer(mod2_ar$fitted, series = "fitted"))
+p2 <- autoplot(ts(trn$level/100), series = "real") +theme_bw()+labs(y="level")+ autolayer(mod2_ar$fitted, series = "fitted")
+p2
+#jpeg("../report/imgs/ar2_2_fit.jpg", width = 600, height = 150, quality = 100)
+p1/p2
+#dev.off()
 
 Box.test(mod2_ar$residuals, type="Ljung-Box")
 autoplot(mod2_ar)

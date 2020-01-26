@@ -19,6 +19,7 @@ df$step <- ordered(df$step, levels = c("1-step", "24-steps", "168-steps"))
 str(df)
 
 p <- plot_ly(df, color = I("darkred"),
+             width = 600, height = 300,
              transforms = list(
                list(type = "filter",
                     target = mod,
@@ -29,10 +30,13 @@ p <- plot_ly(df, color = I("darkred"),
                     operation = "=",
                     value = unique(df$modality)[1]))) %>% 
   add_bars(y = err, x = ~step, width = 0.2) %>%
-  layout(updatemenus = list(
+  layout(title = "Interactive visualization for models perfomance",
+        xaxis = list(title = "steps"),
+        yaxis = list(title = "MAPE %"),
+        updatemenus = list(
                         list(
                           type = 'dropdown',
-                          y = 0.8,
+                          y = 1,
                           active = 0,
                           buttons = list(
                             list(method = "restyle",
@@ -54,7 +58,7 @@ p <- plot_ly(df, color = I("darkred"),
                                  args = list("transforms[0].value", unique(df$mod)[6]),
                                  label = unique(df$mod)[6]))),
                         list(type = 'dropdown',
-                          y = 0.7,
+                          y = 0.8,
                           active = 0,
                           buttons = list(
                             list(method = "restyle",
@@ -65,3 +69,4 @@ p <- plot_ly(df, color = I("darkred"),
                                  label = unique(df$modality)[2])))))
 p
 
+#htmlwidgets::saveWidget(as_widget(p), "results.html")

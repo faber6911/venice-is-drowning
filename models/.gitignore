@@ -1,0 +1,8 @@
+.DS_Store
+.Rproj.user
+.Rhistory
+.Rapp.history
+.RData
+.Rprofile
+UCM_cache
+ARIMA_cache
