@@ -30,8 +30,12 @@ Need to improve a description.
 ## &#9741; &nbsp; Objectives
 
 <ul>
+<!--
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 (analisi univariata)</li>
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 dopo l'integrazione di dati meteo (analisi multivariata)</li>
+-->
+<li>Time series Prediction with the historical data from the tidal levels in the Venice lagune 1983-2018 (univariate auto-regressive-based analysis)</li>
+<li>Same objective but with the integration of weather-related data (multivariate analysis)</li>
 </ul>
 
 <a name="aboutus"></a>
@@ -39,8 +43,8 @@ Need to improve a description.
 
 &#8860; &nbsp; **Dario Bertazioli**
 
-- *Cosa studio*: Studente Magistrale di Data Science presso l'Università degli Studi di Milano-Bicocca;
-- *Studi precedenti*: Laurea triennale in Fisica presso l'Università degli Studi di Milano.
+- *Current Studies*: Data Science Master Student at Università degli Studi di Milano-Bicocca;
+- *Past Studies*: Bachelor's degree in Physics at Università degli Studi di Milano.
 <br>
 
 <div align = "center">
@@ -51,8 +55,8 @@ Need to improve a description.
 
 &#8860; &nbsp; **Fabrizio D'Intinosante**
 
-- *Cosa studio*: Studente Magistrale di Data Science presso l'Università degli Studi di Milano-Bicocca;
-- *Studi precedenti*: Laurea triennale in Economia e Statistica per le organizzazioni presso l'Università degli Studi di Torino.
+- *Current Studies*: Data Science Master Student at Università degli Studi di Milano-Bicocca;
+- *Past Studies*: Bachelor's Degree in Economics e Statistics at Università degli Studi di Torino.
 <br>
 
 <div align = "center">
