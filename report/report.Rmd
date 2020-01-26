@@ -361,7 +361,7 @@ One can observe how the "iterated-real" and the "iterated-pred" prediction types
 
 # Results
 
-The results of the described evaluation process are directly reported in Table 2, and also visualized in the interactive Fig.FIXME: add fig. num.
+The results of the described evaluation process are reported in Table 2. We verified the proportionality of the obtained MAPE results with those in terms of RMSE, and we choose for brevity sake to report only the mape metrics, which is easily interpretable. The results are also visualized in the interactive Fig.FIXME: add fig. num.
 
 
 ![](imgs/results_table.png)
