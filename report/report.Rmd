@@ -53,7 +53,7 @@ Two datasets are the basis for the project pipeline:
 
 The tides level dataset is composed using the single historical datasets made public by the city of Venice, in particular from [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). The data regarding the meteorological variables, instead have been provided, on request, by [ARPA Veneto](https://www.arpa.veneto.it/). 
 
-Considering that one of the main cause of the tidal phenomena is known to be the lunar gravitational potential acting over the seas on earth, an attempt was made in order to explicitly introduce in the model the physics of the system through the creation of an ad-hoc time series containing the distance between Venice and the Moon (i.e. the radius of the gravitational interaction). Therefore, we firstly reproduced the approximate solution of the (differential) motion equation governing the lunar motion around the earth (as a Sun-Earth-Moon three body problem) presented in the great book "Newtonian Dynamics" by Richard Fitzpatrick, obtaining a quite precise analytical description of the aforementioned interaction radius, calculated with respect to the center of the earch, as a function of time.
+Considering that one of the main cause of the tidal phenomena is known to be the lunar gravitational potential acting over the seas on earth, an attempt was made in order to explicitly introduce in the model the physics of the system through the creation of an ad-hoc time series containing the distance between Venice and the Moon (i.e. the radius of the gravitational interaction). Therefore, we firstly reproduced the approximate solution of the (differential) motion equation governing the lunar motion around the earth (as a Sun-Earth-Moon three body problem) presented in the great book "Newtonian Dynamics" by Richard Fitzpatrick, obtaining a quite precise analytical description of the aforementioned interaction radius, calculated with respect to the center of the Earth, as a function of time.
 Then, in order to access more precise solutions, and for the sake of simplicity and re-using fashion' we exploited the API *PyEphem*, an astronomy library that provides basic astronomical computations for the Python programming language: the objective distance is obtained from the API which internally perform a 4th order RK integration and triangulate the distance with respect to the observer position (Venice in this case).
 In summary, the "*lunar motion*" time series, consisting of the distance between Venice and the Moon as a function of time, is obtained for further testing's sake.
 
@@ -78,7 +78,7 @@ Il dataset dei livelli di marea è stato composto dai singoli dataset storici an
 
 <!-- contiene invece le operazioni di processing riguardanti i dati meteorologici;
 -->
-* **parsing_tides_weather**  reports a summary of the procedure implemented in order to deal with missing data in the weather dataset, and contains the merging operation producing the final weather dataset.
+* **parsing_tides_weather**  reports a summary of the procedure implemented in order to deal with missing data in the weather dataset, and contains the merging operation producing the final dataset.
 
 <!-- riassume infine le operazioni svolte per risolvere il problema dei dati mancanti per quanto riguarda il dataset dei dati meteorologici ed il finale *merge* dei due file.
 -->
@@ -157,7 +157,7 @@ but feel free to elaborate-->
 
 # Models
 
-The produced models will focus on two areas, a purely statistical one with linear models such as ARIMA and UCM and a a machine learning approach, through the investigation of an LSTM model. 
+The produced models will focus on two areas, a purely statistical one with linear models such as ARIMA and UCM and a machine learning approach, through the investigation of an LSTM model. 
 The preparation and implementation of the models will be presented below and a section of results, where it will be possible to make a rapid comparison between the performance of the models on a test set defined a priori, will be eventually proposed. 
 For the modelling approach, it is worth highlighting the different subsets of the whole dataset exploited for each one of the described areas:
 
@@ -253,7 +253,7 @@ The autocorrelation and the fitting performances are visible in Fig.10.
 </figure>
 </center>
 <br>
-As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average: the autocorrelation plots and the model fitting on the train set is visibile in fig. 11.
+As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in Fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average: the autocorrelation plots and the model fitting on the train set is visibile in Fig. 11.
 
 <center>
 <figure>
@@ -263,7 +263,7 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 </center>
 <br>
 
-Also in this case, following the observations of the autocorrelation plots and the trend of the AICc we proceeded to insert the autoregressive and moving average components until obtaining the final model (3,0,2)(1,0,0)[24] with drift. It is worth to notice how this model is decidedly less parameterized than the previous one: this is due to the fact that the harmonics inserted manage to explain a large part of the historical series by themselves as can be seen from fig. 11. After the fitting the resulting autocorrelation plots appears as reported in fig. 12. Even in this case it was not possible to absorb all the autocorrelation but the Box-Ljung text ensures that the residuals are white noise up to the third lag and the performances on train and test set are pretty good.
+Also in this case, following the observations of the autocorrelation plots and the trend of the AICc we proceeded to insert the autoregressive and moving average components until obtaining the final model (3,0,2)(1,0,0)[24] with drift. It is worth to notice how this model is decidedly less parameterized than the previous one: this is due to the fact that the harmonics inserted manage to explain a large part of the historical series by themselves as can be seen from Fig. 11. After the fitting the resulting autocorrelation plots appears as reported in Fig. 12. Even in this case it was not possible to absorb all the autocorrelation but the Box-Ljung text ensures that the residuals are white noise up to the third lag and the performances on train and test set are pretty good.
 
 <center>
 <figure>
@@ -294,9 +294,9 @@ While approaching the problem under a machine-learning based perspective, one of
 
 In particular, coherently with the procedure of the linear models, one step (one hour), 24 steps and 168 steps ahead predictions are performed.
 
-Another slightly different approach would consist in a multi-output prediction (feasible i.e. when experimenting with Neural Networks), where for each window given as input to the classifier, another window of target elements is produced. We tested this approach with output slices having dimensions 12, 24 and 168 (i.e. forecasting half a day, a whole day, or an entire week in the same execturion), but the results were not particularly satisfying (not comparable in a quantitative way with those provided by the linear models). 
+Another slightly different approach would consist in a multi-output prediction (feasible i.e. when experimenting with Neural Networks), where for each window given as input to the classifier, another window of target elements is produced. We tested this approach with output slices having dimensions 12, 24 and 168 (i.e. forecasting half a day, a whole day, or an entire week in the same execution), but the results were not particularly satisfying (not comparable in a quantitative way with those provided by the linear models). 
 The mentioned multi-output approach would probably lead to interesting results when dealing with a vast amount of training data (whereas it is worth to recall that, mainly due to computational reasons, we reduced the total amount of available observation down to few years.).
-We, therefore, decided to executed and to report "direct" predictions with a single output.
+We, therefore, decided to execute and to report "direct" predictions with a single output.
 
 Regarding the input features, two different strategies has been followed:
 
