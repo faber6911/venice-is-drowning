@@ -16,14 +16,17 @@
 
 <a name="overview"></a>
 ## &#9741; &nbsp; Overview
-Need to improve a description.
+Need to improve a description
 
 <a name="data sources"></a>
 ## &#9741; &nbsp; Data sources
 <ul>
   <li><a href = "https://www.kaggle.com/lbronchal/venezia">kaggle</a> dataset</li>
   <li><a href = "https://github.com/lbcommer/venezia-high-waters">github repo</a> inspiration</li>
-  <li><a href = "https://www.comune.venezia.it/it/content/osservatorio-bioclimatologico-dellospedale-al-mare-lido-venezia#b6af8d">weather data</a> for data integration (optional)</li>
+  <li><a href = "https://www.comune.venezia.it/node/6214">tides data</a> for 2018</li>
+  <li><a href = "https://www.arpa.veneto.it/">ARPA Veneto</a> for meteorological data</li>
+  <li><a href = "https://rhodesmill.org/pyephem/">PyEphem</a> API for lunar motion</li>
+  <li><a href = "https://cran.r-project.org/web/packages/oce/index.html">oce</a> package for Analysis of Oceanographic Data</li>
 </ul>
 
 <a name="obiettivi"></a>
@@ -34,9 +37,13 @@ Need to improve a description.
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 (analisi univariata)</li>
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 dopo l'integrazione di dati meteo (analisi multivariata)</li>
 -->
-<li>Time series Prediction with the historical data from the tidal levels in the Venice lagune 1983-2018 (univariate auto-regressive-based analysis)</li>
-<li>Same objective but with the integration of weather-related data (multivariate analysis)</li>
-</ul>
+The main objective of the project is to analyze the data of the tide detections regarding the area of the Venice lagoon, producing predictive models whose performances are evaluated on a time horizon ranging from one hour up to a week of forecast.
+
+For this purpose, three models, both linear and machine-learning based, are tested:
+
+* ARIMA (AutoRegressive Integrated Moving Average);
+* UCM (Unobserved Component Models);
+* LSTM (Long Short-Term Memory).
 
 <a name="aboutus"></a>
 ## &#9741; &nbsp; About us
