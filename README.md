@@ -31,8 +31,6 @@ Need to improve a description
 
 <a name="obiettivi"></a>
 ## &#9741; &nbsp; Objectives
-
-<ul>
 <!--
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 (analisi univariata)</li>
 <li>Realizzare previsioni su serie storica maree laguna di Venezia 1983-2018 dopo l'integrazione di dati meteo (analisi multivariata)</li>
