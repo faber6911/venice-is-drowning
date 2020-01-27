@@ -326,7 +326,7 @@ Therefore, further testing and a systematic evaluation of performances is carrie
 </center>
 <br>
 
-## Training and Evalutaion Procedure
+## Training and Evaluation Procedure
 
 Three versions of the selected model is trained over each different prediction step with a common training schedule: the number of epochs is set to 250, with a batch size equals to 256, and Early Stopping is applied, monitoring the (non-)variation of the validation loss, in order to avoid the overfitting. 
 For counter-balancing the high model complexity, which would lead to overfit the training set, an intensive use of dropout is exploited during the training phase.
