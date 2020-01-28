@@ -3,7 +3,7 @@
 </p>
 </div>
 
-<h1 align = "center">Venice is drowning</h1>
+<h1 align = "center">Venice is drowning <img src="https://gitlab.com/faber6911/datasets/raw/master/pictures/waves.png" width="2%"/></h1>
 <h6 align = "center">a Streaming Data Management and Time Series Analysis project</h6>
 
 <p align="center">
@@ -16,7 +16,7 @@
 
 <a name="overview"></a>
 ## &#9741; &nbsp; Overview
-Need to improve a description
+An attempt to model the tidal phenomenon in the Venice lagoon using both linear/statistical and machine learning approaches.
 
 <a name="data sources"></a>
 ## &#9741; &nbsp; Data sources
