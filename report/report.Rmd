@@ -48,9 +48,6 @@ Two datasets are the basis for the project pipeline:
   - the "main" dataset contains the tides level measurements (in cm) in the Venice lagoon from a certain reference level, obtained through the use of a sensor, between 1983 and 2018;
   - a second dataset holds the information regarding meteorological variables such as rainfall in mm, wind direction in degree at 10 meters and finally wind speed at 10 meters in meters per second in the periods between 2000 and 2019.
 
-<!-- I dataset utilizzati per lo svolgimento della pipeline del progetto sono sostanzialmente due: un primo dataset composto dalle rilevazioni, tramite un apposito sensore, dei livelli di marea nella laguna di Venezia in cm rispetto ad un certo valore di riferimento dal 1983 fino al 2018 mentre il secondo contiene le informazioni riguardanti variabili meteorologiche (precipitazioni in millimetri, direzione del vento in gradi, velocità del vento in Km/h) dal 2000 al 2019. -->
-
-
 The tides level dataset is composed using the single historical datasets made public by the city of Venice, in particular from [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). The data regarding the meteorological variables, instead have been provided, on request, by [ARPA Veneto](https://www.arpa.veneto.it/). 
 
 Considering that one of the main cause of the tidal phenomena is known to be the lunar gravitational potential acting over the seas on earth, an attempt was made in order to explicitly introduce in the model the physics of the system through the creation of an ad-hoc time series containing the distance between Venice and the Moon (i.e. the radius of the gravitational interaction). Therefore, we firstly reproduced the approximate solution of the (differential) motion equation governing the lunar motion around the earth (as a Sun-Earth-Moon three body problem) presented in the great book "Newtonian Dynamics" by Richard Fitzpatrick, obtaining a quite precise analytical description of the aforementioned interaction radius, calculated with respect to the center of the Earth, as a function of time.
@@ -59,40 +56,19 @@ In summary, the "*lunar motion*" time series, consisting of the distance between
 
 All the preprocessing operations regarding parsing, inspection and the final union of the cited datasets are available in the following scripts:
 
-<!-- 
-/html realized with this order:
-Il dataset dei livelli di marea è stato composto dai singoli dataset storici annuali forniti dal Comune di Venezia, in particolare dal [Centro Previsioni e Segnalazioni Maree](https://www.comune.venezia.it/node/6214). I dati riguardanti invece le variabili meteorologiche sono stati forniti, su richiesta, da [ARPA Veneto](https://www.arpa.veneto.it/). Tutte le operazioni di preprocessing riguardanti l'assemblaggio, l'ispezione e la conclusiva unione dei dataset citati sono disponibili nei seguenti script/html realizzati con questo ordine: -->
-
 * **parsing_tides_data** allows to perform the construction of the tidal dataset, importing and unifying each single annual dataset;
-
-<!-- è lo script utilizzato per svolgere l'operazione di assemblaggio del dataset delle maree completo, importando ed unificando tutti i dataset annuali disponibili;
-
--->
 
 * **inspection** contains a series of preliminar inspection of the aformentioned data:
 
-<!-- contiene una serie di ispezioni preliminari rispetto i dati citati;
--->
-
 * **preprocess_weather_data_2000_2019** contains the preprocessing operations of the weather-related dataset;
 
-<!-- contiene invece le operazioni di processing riguardanti i dati meteorologici;
--->
 * **parsing_tides_weather**  reports a summary of the procedure implemented in order to deal with missing data in the weather dataset, and contains the merging operation producing the final dataset.
 
-<!-- riassume infine le operazioni svolte per risolvere il problema dei dati mancanti per quanto riguarda il dataset dei dati meteorologici ed il finale *merge* dei due file.
--->
 As a precise choice, due to time-related and computational reasons, only the data ranging from 2010 and 2018 are kept after the preprocessing.
-<!--
-Come scelta progettuale, si è deciso in fase di processing dei dati di limitare l'utilizzo di questi al periodo tra Gennaio 2010 e Dicembre 2018.
--->
 
 # Data inspection
 
 During the preprocessing phase, some descriptive visualizations regarding the main time series are produced in order to inspect its characteristics.  
-<!--
-Durante la fase di processing dei dati e prima di procedere all'effettiva realizzazione dei modelli di previsione, sono state prodotte una serie di visualizzazioni con lo scopo di ispezionare a fondo alcuni aspetti riguardanti la serie storica. 
--->
 
 <center>
 <figure>
@@ -105,10 +81,6 @@ Durante la fase di processing dei dati e prima di procedere all'effettiva realiz
 Fig.1 reports the entire time series, represented together with the autocorrelation and partial autocorrealtion plots. 
 Observing Fig.2, it is possible to notice how the tidal phenomenon seems to be characterized by a normal distribution. In such a case, it is worth noticing that from the analytic perspective the concepts of strict and weak stationarity are equivalent. 
 
-<!--
-In fig. 1 è possibile osservare la serie storica completa, rappresentata insieme ai plot di autocorrelazione ed autocorrelazione parziale, mentre in fig. 2 si può verificare come il fenomeno delle maree sembrerebbe distribuirsi seguendo una distribuzione normale. In questo caso, infatti, i concetti di stazionarietà debole e forte si equivalgono.
--->
-
 <center>
 <figure>
 ![Figure 2](imgs/distribution.jpg)
@@ -118,9 +90,6 @@ In fig. 1 è possibile osservare la serie storica completa, rappresentata insiem
 <br>
 During the preliminary inspection of the historycal data, one of the investigations deals with  the mean and variance stationarity of the considered time series.
 Regarding the former,  Fig.1 suggests the series to be characterized by a stationary mean. This hypothesis is further proven by the output of the Augmented Dickey-Fuller test, confirming the in-mean stationarity of the tidal phenomenon.
-<!--
-Durante il lavoro di prima ispezione dei dati storici una delle verifiche effettuate ha riguardato la stazionarietà in media e quella in varianza: per quanto riguarda la prima osservando la serie in fig. 1 questa sembrerebbe effettivamente risultare stazionaria in media, per questa ragione per confermare l'ipotesi di stazionarietà in fig. 3 è riportato l'output di un test Augmented Dickey-Fuller che, come si vede, conferma a tutti gli effetti la stazionarietà in media del fenomeno mareale.
--->
 
 <center>
 <figure>
@@ -132,9 +101,6 @@ Durante il lavoro di prima ispezione dei dati storici una delle verifiche effett
 On the other hand, the latter characteristics (stationary variance) can be verified observing Fig.4, where the daily average of the tidal level values are plotted against the daily aggregation of the standard deviation. 
 In particular, no clear trends emerges in such a plot, enforcing the conclusion that the plotted quantities are uncorrelated.
 
-<!--
-Successivamente alla verifica della stazionarità in media si è proceduto a verificare la stazionarietà in varianza: appare chiaro dal plot riportato in fig. 4 come i valori medi di marea per giorno e la loro *standard deviation* non risultino in un trend crescente ma anzi seguano sostanzialmente un trend piatto.
--->
 <center>
 <figure>
 ![Figure 4](imgs/var_stationary.jpg)
@@ -143,10 +109,8 @@ Successivamente alla verifica della stazionarità in media si è proceduto a ver
 </center>
 <br>
 
-<!--FIXME: add a brief comment to Fig.5 
-i.e.: An initial inverstigation is performed by analyzing the main stagionalities of the time series by means of a Correlogram Plot, reported in Fig.5.
+An initial inverstigation is performed by analyzing the main stagionalities of the time series by means of a Correlogram Plot, reported in Fig.5.
 
-but feel free to elaborate-->
 <center>
 <figure>
 ![Figure 5](imgs/periodogram.jpg)
@@ -168,11 +132,6 @@ For the modelling approach, it is worth highlighting the different subsets of th
 
 The test set, previously extracted, is common among the different approaches and consists of the last two weeks of December 2018, i.e. from 17/12/2018 23:00:00 to 31/12/2019 23:00:00.
 
-<!-- * per i modelli lineari il training set consiste negli ultimi sei mesi del 2018, a partire da Luglio fino a Dicembre 2018; -->
-<!-- * per il modello machine learning, data la sua capacità di gestire moli di dati decisamente superiori a parità di tempo di computazione, come training set è stato utilizzato tutto il dataset a partire da Gennaio 2010 fino a Dicembre 2018. -->
-
-<!-- Il test set, estratto a priori, consiste nell'ultima settimana di Dicembre 2018, ovvero dal 24/12/2018 23:00:00 al 31/12/2018 alle 23:00:00. -->
-
 <center>
 <figure>
 ![Figure 6](imgs/train_test.jpg)
@@ -180,8 +139,6 @@ The test set, previously extracted, is common among the different approaches and
 </figure>
 </center>
 <br>
-<!--FIXME: got till here-->
-<!-- Entrambi i modelli lineari realizzati, come detto, utilizzano come training set i dati delle maree a partire dal 01/07/2018 00:00:00 fino al 24/12/2018 23:00:00. Questa scelta è stata guidata da esigenze di ottimizzazione dei tempi di *fitting* dei modelli poichè, selezionando più dati, si è riscontrato un importante dilatamento di questi. Sia ARIMA che UCM sono stati scritti in R, utilizzando a questo scopo i pacchetti *forecast* e *KFAS*. -->
 
 Concerning the linear models, two strategies are considered: the former consists of integrating the meteorological variables and the lunar motion -visualized in Fig.7- in the main analysis, while the latter is based on performing a sort of harmonic analysis by re-using some of the most common principal periodic components  previously extracted from other studies in the field (i.e. see Consoli et all, 2014 and Abubakar et all, 2019). 
 The adaptation of such components to our series is done exploiting *oce*, an R package that helps Oceanographers with their work by providing utils to investigate and elaborate Oceanographic data files.
@@ -253,7 +210,7 @@ The autocorrelation and the fitting performances are visible in Fig.10.
 </figure>
 </center>
 <br>
-As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in Fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average: the autocorrelation plots and the model fitting on the train set is visibile in Fig. 11.
+As anticipated, the second ARIMA model realized use as input regressors the 8 harmonics extracted using *tidem* and *oce*. Since it is a functional form based solely on time, it is possible for us to obtain them also for the projections. An example of this harmonics is shown in Fig. 8 in an interactive fashion. The effect of the use of harmonics is already visible starting from the basic model, that is, the one without autoregressive components or moving average: the autocorrelation plots and the model fitting on the train set are visibile in Fig. 11.
 
 <center>
 <figure>
@@ -263,7 +220,7 @@ As anticipated, the second ARIMA model realized use as input regressors the 8 ha
 </center>
 <br>
 
-Also in this case, following the observations of the autocorrelation plots and the trend of the AICc we proceeded to insert the autoregressive and moving average components until obtaining the final model (3,0,2)(1,0,0)[24] with drift. It is worth to notice how this model is decidedly less parameterized than the previous one: this is due to the fact that the harmonics inserted manage to explain a large part of the historical series by themselves as can be seen from Fig. 11. After the fitting the resulting autocorrelation plots appears as reported in Fig. 12. Even in this case it was not possible to absorb all the autocorrelation but the Box-Ljung text ensures that the residuals are white noise up to the third lag and the performances on train and test set are pretty good.
+Also in this case, following the observations of the autocorrelation plots and the trend of the AICc we proceeded to insert the autoregressive and moving average components until obtaining the final model (3,0,2)(1,0,0)[24] with drift. It is worth to notice how this model is decidedly less parameterized than the previous one: this is due to the fact that the inserted harmonics manage to explain a large part of the historical series by themselves as can be seen from Fig. 11. After the fitting the resulting autocorrelation plots appears as reported in Fig. 12. Even in this case it was not possible to absorb all the autocorrelation but the Box-Ljung text ensures that the residuals are white noise up to the third lag and the performances on train and test set are pretty good.
 
 <center>
 <figure>
@@ -281,8 +238,6 @@ As a second typology of models regarding the section of linear models, a UCM mod
 In this sense it is possible once again to understand how much harmonics can contribute in explaining the level of the tides. Later, as for the ARIMA models, the results of the UCM model will also be shown.
 
 ## LSTM
-
-FIXME: forse in effetti aveva senso dividere inizialmente tra "LINEAR MODELS" e "MACHINE LEARNING MODELS", così poi la mia ulteriore sottodivisione ha più zenzo. To be discussed with @Fabriwikam
 
 ### General Approach
 
@@ -328,7 +283,7 @@ Therefore, further testing and a systematic evaluation of performances is carrie
 
 ## Training and Evaluation Procedure
 
-Three versions of the selected model is trained over each different prediction step with a common training schedule: the number of epochs is set to 250, with a batch size equals to 256, and Early Stopping is applied, monitoring the (non-)variation of the validation loss, in order to avoid the overfitting. 
+Three versions of the selected model are trained over each different prediction step with a common training schedule: the number of epochs is set to 250, with a batch size equals to 256, and Early Stopping is applied, monitoring the (non-)variation of the validation loss, in order to avoid the overfitting. 
 For counter-balancing the high model complexity, which would lead to overfit the training set, an intensive use of dropout is exploited during the training phase.
 For regularizing the training over the last epochs, a learning rate scheduler is implemented, reducing the learning rate when variation over the validation loss starts to indicate signs of learning instability.
 We could typically observe a couple of learning rate reduction (of a factor 0.5x) and the Early Stopping mechanism becoming active after ~100 epochs. 
@@ -361,14 +316,15 @@ One can observe how the "iterated-real" and the "iterated-pred" prediction types
 
 # Results
 
-The results of the described evaluation process are reported in Table 2. We verified the proportionality of the obtained MAPE results with those in terms of RMSE, and we choose for brevity sake to report only the mape metrics, which is easily interpretable. The results are also visualized in the interactive Fig.FIXME: add fig. num.
+The results of the described evaluation process are reported in Table 2. We verified the proportionality of the obtained MAPE results with those in terms of RMSE, and we choose for brevity sake to report only the mape metrics, which is easily interpretable. The results are also visualized in the interactive Fig.15.
 
 
 ![](imgs/results_table.png)
 
 Linear Models seems to better perform on the test set, having significantly low error (in terms of mape) on the iterated (thus averaged) predictions with respect to the LSTM models. On the other hand, in the short prediction steps (1-24) the punctual predictions of the non linear models are slightly better, demonstrating the good fitting capacity of such approaches, which suffers from iterated predictions on never-seen-before data.
-<!--
-FIXME: add a comment on comparing results among arima models -->
+
+Beside the good general behaviour of the linear models, among those the better performing one appears to be *mod2_ar*, which systematically obtains the best predictions over the iterated class of results. 
+In particular, this arima model seems to benefit from the integration of deterministic regressors (in particular the previously mentioned harmonic components).
 
 The LSTM2 attempt seems to ameliorate the single-input results, confirming the important role of the external features (harmonics and weather data) in guiding the forecast, especially on long-term previsions.
 
@@ -377,7 +333,7 @@ The LSTM2 attempt seems to ameliorate the single-input results, confirming the i
 ```{r results, out.width="60%"}
 shiny::includeHTML("imgs/results.html")
 ```
-<figcaption>Figure X:</figcaption>
+<figcaption>Figure 15: visualization of the results reported in Table 2. Please be aware of the different y-axis scale for every applied selection.</figcaption>
 </figure>
 </div>
 
