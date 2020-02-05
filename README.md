@@ -43,6 +43,8 @@ For this purpose, three models, both linear and machine-learning based, are test
 * UCM (Unobserved Component Models);
 * LSTM (Long Short-Term Memory).
 
+The final report is available <a href="https://faber6911.github.io/venice-is-drowning/report/report.html">here</a> while <a href="https://github.com/faber6911/venice-is-drowning/blob/master/slides/venice_is_drowning_slides.pdf">here</a> the slides.
+
 <a name="aboutus"></a>
 ## &#9741; &nbsp; About us
 
