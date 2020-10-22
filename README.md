@@ -3,7 +3,7 @@
 </p>
 </div>
 
-<h1 align = "center">Venice is drowning <img src="https://gitlab.com/faber6911/datasets/raw/master/pictures/waves.png" width="2%"/></h1>
+<h1 align = "center">Venice is drowning <img src="https://raw.githubusercontent.com/faber6911/venice-is-drowning/master/pictures_waves.png" width="2%"/></h1>
 <h6 align = "center">a Streaming Data Management and Time Series Analysis project</h6>
 
 <p align="center">
