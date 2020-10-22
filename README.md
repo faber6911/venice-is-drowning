@@ -54,11 +54,9 @@ The final report is available <a href="https://faber6911.github.io/venice-is-dro
 - *Past Studies*: Bachelor's degree in Physics at Università degli Studi di Milano.
 <br>
 
-<div align = "center">
 <p align = "center">
   <a href = "https://www.linkedin.com/in/dario-bertazioli-961ab4180/"><img src="https://raw.githubusercontent.com/DBertazioli/Interact/master/img/iconfinder_Popular_Social_Media-22_2329259.png" width = "3%"></a>
   <a href = "https://github.com/DBertazioli/"><img src="https://raw.githubusercontent.com/malborroni/Foundations_of_Computer-Science/master/images/GitHub.png" width = "3%"></a>
-</div>
 
 &#8860; &nbsp; **Fabrizio D'Intinosante**
 
@@ -66,8 +64,6 @@ The final report is available <a href="https://faber6911.github.io/venice-is-dro
 - *Past Studies*: Bachelor's Degree in Economics e Statistics at Università degli Studi di Torino.
 <br>
 
-<div align = "center">
 <p align = "center">
   <a href = "https://www.linkedin.com/in/fabrizio-d-intinosante-125042180/"><img src="https://raw.githubusercontent.com/DBertazioli/Interact/master/img/iconfinder_Popular_Social_Media-22_2329259.png" width = "3%"></a>
   <a href = "https://github.com/faber6911/"><img src="https://raw.githubusercontent.com/malborroni/Foundations_of_Computer-Science/master/images/GitHub.png" width = "3%"></a>
-</div>
