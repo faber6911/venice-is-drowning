@@ -58,7 +58,6 @@ The final report is available <a href="https://faber6911.github.io/venice-is-dro
   <a href = "https://www.linkedin.com/in/dario-bertazioli-961ab4180/"><img src="https://raw.githubusercontent.com/DBertazioli/Interact/master/img/iconfinder_Popular_Social_Media-22_2329259.png" width = "3%"></a>
   <a href = "https://github.com/DBertazioli/"><img src="https://raw.githubusercontent.com/malborroni/Foundations_of_Computer-Science/master/images/GitHub.png" width = "3%"></a>
 
-<!---
 &#8860; &nbsp; **Fabrizio D'Intinosante**
 
 - *Current Studies*: Data Science Master Student at Università degli Studi di Milano-Bicocca;
@@ -68,4 +67,3 @@ The final report is available <a href="https://faber6911.github.io/venice-is-dro
 <p align = "center">
   <a href = "https://www.linkedin.com/in/fabrizio-d-intinosante-125042180/"><img src="https://raw.githubusercontent.com/DBertazioli/Interact/master/img/iconfinder_Popular_Social_Media-22_2329259.png" width = "3%"></a>
   <a href = "https://github.com/faber6911/"><img src="https://raw.githubusercontent.com/malborroni/Foundations_of_Computer-Science/master/images/GitHub.png" width = "3%"></a>
---->
